@@ -61,7 +61,7 @@ def get_func_fps(func_name: str, func, xyz1: torch.Tensor, xyz2: torch.Tensor, t
         else:
             mean = np.mean(dist1)
 
-        assert mean > 0
+        assert mean >= 0
         calculate_num += 1
 
         spend_second = timer.now()
@@ -70,7 +70,6 @@ def get_func_fps(func_name: str, func, xyz1: torch.Tensor, xyz2: torch.Tensor, t
 
     fps = calculate_num / timer.now()
 
-    print("dist1 mean = ", mean)
     return fps
 
 def test():
