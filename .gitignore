@@ -1,0 +1,8 @@
+__pycache__
+*.ncu-rep
+.cache
+build
+.vscode
+*.egg-info
+compile_commands.json
+dist
