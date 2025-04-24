@@ -1,14 +1,12 @@
-import numpy as np
 import torch
-from torch.profiler import profile, record_function, ProfilerActivity
-from scipy.spatial.distance import cdist
+import numpy as np
 from typing import List
+from icecream import ic
+from scipy.spatial.distance import cdist
 
 import triton
-import triton.language as tl
 import triton_chamfer
-
-from icecream import ic
+import triton.language as tl
 
 
 def chamfer_distance_sp(ref_pts, query_pts):

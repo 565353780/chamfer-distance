@@ -1,14 +1,10 @@
-import torch
-from torch.profiler import profile, record_function, ProfilerActivity
 import jax
-from jax import numpy as jnp, vmap, jit
+import time
+import torch
 import mash_cpp
+from tqdm import trange
 
 from chamfer_loss import chamfer_distance
-import time
-
-import polyscope as ps
-from icecream import ic
 
 
 class Timer:
@@ -55,17 +51,21 @@ if __name__ == "__main__":
         return dist1.mean() + dist2.mean()
 
     timer = Timer()
-    mash_cpp.toBoundaryConnectLoss(anchor_num, boundary_pts,
-                                   mask_boundary_phi_idxs)
+    for _ in trange(100):
+        mash_cpp.toBoundaryConnectLoss(anchor_num, boundary_pts,
+                                    mask_boundary_phi_idxs)
     timer.log("MashCPP")
 
-    out = jax.tree_util.tree_map(lambda i: functor(i),
-                                 list(torch.arange(anchor_num).cuda()))
+    for _ in trange(100):
+        out = jax.tree_util.tree_map(lambda i: functor(i),
+                                    list(torch.arange(anchor_num).cuda()))
     timer.log("JAX tree_map")
 
-    [functor(i) for i in range(anchor_num)]
+    for _ in trange(100):
+        [functor(i) for i in range(anchor_num)]
     timer.log("List comprehension")
 
-    for i in range(anchor_num):
-        functor(i)
+    for _ in trange(100):
+        for i in range(anchor_num):
+            functor(i)
     timer.log("For loop")

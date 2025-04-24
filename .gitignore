@@ -1,3 +1,4 @@
+# compiled
 __pycache__
 *.ncu-rep
 .cache
@@ -6,3 +7,4 @@ build
 *.egg-info
 compile_commands.json
 dist
+*.so

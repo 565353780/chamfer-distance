@@ -1,13 +1,12 @@
 import os
-
 import re
+import glob
+import torch
+import shutil
+import subprocess
 from setuptools import setup
 from pkg_resources import parse_version
-import subprocess
-import shutil
-import torch
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
-import glob
 
 package_name = "triton_chamfer"
 
