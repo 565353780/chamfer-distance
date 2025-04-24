@@ -9,11 +9,11 @@ set(CMAKE_CUDA_ARCHITECTURES 86)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # As much I prefer FetchContent, it's super annoying to setup up with CUDAExtension
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/cudaKDTree)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Lib/cudaKDTree)
 
 set(TCNN_BUILD_BENCHMARK OFF)
 set(TCNN_BUILD_EXAMPLES OFF)
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/third_party/tiny-cuda-nn)
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../Lib/tiny-cuda-nn)
 
 find_package(Python COMPONENTS Interpreter Development REQUIRED)
 
@@ -29,7 +29,7 @@ set(HDRS
 )
 
 set(SRCS
-    ${SRC_DIR}/module.cu    
+    ${SRC_DIR}/module.cu
     ${SRC_DIR}/crude_nn.cu
     ${SRC_DIR}/kd_closest_query.cu
 )

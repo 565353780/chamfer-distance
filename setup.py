@@ -8,11 +8,6 @@ from setuptools import setup
 from pkg_resources import parse_version
 from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
-package_name = "triton_chamfer"
-
-SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
-ROOT_DIR = SCRIPT_DIR
-
 
 def min_supported_compute_capability(cuda_version):
     if cuda_version >= parse_version("12.0"):
@@ -159,21 +154,21 @@ nvcc_flags = nvcc_flags + definitions
 cflags = base_cflags + definitions
 
 setup(
-    name=package_name,
+    name="triton_chamfer",
     version="0.0.1",
     ext_modules=[
         CUDAExtension(
-            name=f"{package_name}._C",
-            sources=glob.glob(f"{package_name}/src/*.cu"),
+            name="triton_chamfer._C",
+            sources=glob.glob("./triton_chamfer/Cpp/src/*.cu"),
             include_dirs=[
-                os.path.abspath(f"{package_name}/include"),
-                os.path.abspath(f"{package_name}/third_party/cudaKDTree"),
+                os.path.abspath("./triton_chamfer/Cpp/include"),
+                os.path.abspath("./triton_chamfer/Lib/cudaKDTree"),
                 os.path.abspath(
-                    f"{package_name}/third_party/tiny-cuda-nn/include"),
+                    "./triton_chamfer/Lib/tiny-cuda-nn/include"),
                 os.path.abspath(
-                    f"{package_name}/third_party/tiny-cuda-nn/dependencies"),
+                    "./triton_chamfer/Lib/tiny-cuda-nn/dependencies"),
                 os.path.abspath(
-                    f"{package_name}/third_party/tiny-cuda-nn/dependencies/fmt/include"
+                    "./triton_chamfer/Lib/tiny-cuda-nn/dependencies/fmt/include"
                 )
             ],
             extra_compile_args={
@@ -183,7 +178,7 @@ setup(
             libraries=["cuda"],
         )
     ],
-    packages=[package_name],
+    packages=["triton_chamfer"],
     zip_safe=False,
     python_requires=">=3.7",
     cmdclass={"build_ext": BuildExtension})
