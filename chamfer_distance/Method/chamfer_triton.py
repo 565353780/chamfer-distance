@@ -1,7 +1,7 @@
 import torch
 from typing import List
 
-from triton_chamfer.Method.nm_dist import nm_dist
+from chamfer_distance.Method.nm_dist import nm_dist
 
 
 @torch.library.custom_op("chamfer::triton", mutates_args=())

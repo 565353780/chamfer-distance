@@ -1,7 +1,7 @@
 import torch
 import triton
 
-from triton_chamfer.Method.kernel import nm_dist_kernel
+from chamfer_distance.Method.kernel import nm_dist_kernel
 
 
 def nm_dist(xyz1: torch.Tensor, xyz2: torch.Tensor):

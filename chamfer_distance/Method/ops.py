@@ -1,8 +1,8 @@
 import torch
-from triton_chamfer import _C
+from chamfer_cpp import kd_closest_query_cuda, crude_nn_cuda
 
 def kd_closest_query(xyz1: torch.Tensor, xyz2: torch.Tensor) -> list[torch.Tensor]:
-    return torch.ops.triton_chamfer.kd_closest_query.default(xyz1, xyz2)
+    return kd_closest_query_cuda(xyz1, xyz2)
 
 def crude_nn(xyz1: torch.Tensor, xyz2: torch.Tensor) -> torch.Tensor:
-    return torch.ops.triton_chamfer.crude_nn.default(xyz1, xyz2)
+    return crude_nn_cuda(xyz1, xyz2)

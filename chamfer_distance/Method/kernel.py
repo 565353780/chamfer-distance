@@ -1,7 +1,7 @@
 import triton
 import triton.language as tl
 
-from triton_chamfer.Config.autotune import get_cuda_autotune_config
+from chamfer_distance.Config.autotune import get_cuda_autotune_config
 
 
 # @triton.autotune(

@@ -1,8 +1,8 @@
 import torch
 from typing import List
 
-from triton_chamfer.Method.ops import kd_closest_query
-from triton_chamfer.Method.chamfer_triton import chamfer_distance_backward, chamfer_distance_setup_context
+from chamfer_distance.Method.ops import kd_closest_query
+from chamfer_distance.Method.chamfer_triton import chamfer_distance_backward, chamfer_distance_setup_context
 
 
 @torch.library.custom_op("chamfer::triton_kd", mutates_args=())

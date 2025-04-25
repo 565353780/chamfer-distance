@@ -4,10 +4,10 @@ from tqdm import trange
 
 import mash_cpp
 
-from triton_chamfer.Method.chamfer_sp import chamfer_sp
-from triton_chamfer.Method.chamfer_triton import chamfer_triton
-from triton_chamfer.Method.chamfer_triton_kd import chamfer_triton_kd
-from triton_chamfer.Module.timer import Timer
+from chamfer_distance.Method.chamfer_sp import chamfer_sp
+from chamfer_distance.Method.chamfer_triton import chamfer_triton
+from chamfer_distance.Method.chamfer_triton_kd import chamfer_triton_kd
+from chamfer_distance.Module.timer import Timer
 
 
 def gradient(y, x, grad_outputs=None):
