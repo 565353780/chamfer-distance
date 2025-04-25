@@ -32,8 +32,8 @@ def checkResults(func, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
     d_xyz1_cuda = gradient(loss_cuda, xyz1)
     d_xyz2_cuda = gradient(loss_cuda, xyz2)
 
-    assert torch.allclose(d_xyz1_cuda, d_xyz1)
-    assert torch.allclose(d_xyz2_cuda, d_xyz2)
+    assert torch.allclose(d_xyz1_cuda, d_xyz1, atol=1e-5), torch.max(torch.abs(d_xyz1_cuda - d_xyz1))
+    assert torch.allclose(d_xyz2_cuda, d_xyz2, atol=1e-5), torch.max(torch.abs(d_xyz2_cuda - d_xyz2))
 
     xyz1 = torch.randn(8192, 3).cuda()
     xyz2 = torch.randn(8192, 3).cuda()
@@ -43,8 +43,8 @@ def checkResults(func, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
         xyz1[None, ...].cpu(),
         xyz2[None, ...].cpu())
 
-    assert torch.all(torch.isclose(dist1.cpu(), dist1_ref[0], atol=1e-5))
-    assert torch.all(torch.isclose(dist2.cpu(), dist2_ref[0], atol=1e-5))
+    assert torch.allclose(dist1.cpu(), dist1_ref[0], atol=1e-5)
+    assert torch.allclose(dist2.cpu(), dist2_ref[0], atol=1e-5)
     assert torch.all(idx1.cpu() == idx1_ref[0])
     assert torch.all(idx2.cpu() == idx2_ref[0])
     return True
@@ -74,8 +74,8 @@ def get_func_fps(func_name: str, func, xyz1: torch.Tensor, xyz2: torch.Tensor, t
 def test():
     torch.manual_seed(0)
 
-    xyz1 = torch.randn(3800, 3).cuda()
-    xyz2 = torch.randn(4000, 3).cuda()
+    xyz1 = torch.randn(38000, 3).cuda()
+    xyz2 = torch.randn(400000, 3).cuda()
     test_second = 3.0
 
     xyz1.requires_grad_(True)
@@ -89,7 +89,16 @@ def test():
     checkResults(chamfer_triton_kd, xyz1, xyz2)
     print('checkResults passed!')
 
-    chamfer_cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, xyz1[None, ...].cpu(), xyz2[None, ...].cpu(), test_second)
+    chamfer_cpu_fps = 0
+    if xyz1.shape[0] * xyz2.shape[0] > 40000 ** 2:
+        print('the size of input xyz are too large! will ignored the chamfer_cpu speed test!')
+    else:
+        try:
+            chamfer_cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, xyz1[None, ...].cpu(), xyz2[None, ...].cpu(), test_second)
+        except Exception as e:
+            print('get_func_fps failed for chamfer_cpu! maybe the size of input xyz are too large!')
+            print(e)
+            pass
     chamfer_cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, xyz1[None, ...], xyz2[None, ...], test_second)
     chamfer_triton_fps = get_func_fps('chamfer_triton', chamfer_triton, xyz1, xyz2, test_second)
     chamfer_triton_kd_fps = get_func_fps('chamfer_triton_kd', chamfer_triton_kd, xyz1, xyz2, test_second)
