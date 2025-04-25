@@ -1,4 +1,4 @@
-# Triton Chamfer
+# Chamfer Distance
 
 ## Setup
 
