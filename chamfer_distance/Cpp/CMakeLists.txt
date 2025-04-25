@@ -26,12 +26,14 @@ set(SRC_DIR src)
 set(HDRS
     ${HDR_DIR}/crude_nn.cuh
     ${HDR_DIR}/kd_closest_query.cuh
+    ${HDR_DIR}/chamfer_triton.h
 )
 
 set(SRCS
-    ${SRC_DIR}/module.cu
+    ${SRC_DIR}/bindings.cpp
     ${SRC_DIR}/crude_nn.cu
     ${SRC_DIR}/kd_closest_query.cu
+    ${SRC_DIR}/chamfer_triton.cu
 )
 
 add_library(${PROJECT_NAME} ${HDRS} ${SRCS})

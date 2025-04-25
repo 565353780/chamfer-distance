@@ -11,7 +11,6 @@ def chamfer_triton(xyz1: torch.Tensor,
     dist2, idx2 = nm_dist(xyz2, xyz1)
     return dist1, idx1, dist2, idx2
 
-
 @chamfer_triton.register_fake
 def _(xyz1: torch.Tensor, xyz2: torch.Tensor):
     N = xyz1.shape[0]

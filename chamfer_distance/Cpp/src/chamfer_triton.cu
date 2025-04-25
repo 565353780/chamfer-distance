@@ -1,7 +1,6 @@
-
+#include "chamfer_triton.h"
 #include "crude_nn.cuh"
 #include "kd_closest_query.cuh"
-#include "module.h"
 #include <ATen/cuda/CUDAUtils.h>
 #include <c10/cuda/CUDAGuard.h>
 
