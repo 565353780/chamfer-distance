@@ -17,7 +17,8 @@ int main(int argc, char *argv[]) {
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
   std::cout << CrudeNN(stream, xyz2, xyz1) << std::endl;
-  std::cout << KDQueryClosest(stream, xyz2.contiguous(), xyz1.contiguous()) << std::endl;
+  std::cout << KDQueryClosest(stream, xyz2.contiguous(), xyz1.contiguous())
+            << std::endl;
 
   return 0;
 }

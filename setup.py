@@ -13,8 +13,6 @@ compute_capabilities = getSupportedComputeCapabilities()
 
 print(f"Targeting C++ standard {cpp_standard}")
 
-
-
 chamfer_root_path = os.getcwd() + "/chamfer_distance/Cpp/"
 chamfer_lib_path = os.getcwd() + "/chamfer_distance/Lib/"
 chamfer_src_path = chamfer_root_path + "src/"
