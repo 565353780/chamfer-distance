@@ -10,7 +10,7 @@ def chamfer_triton_kd(xyz1: torch.Tensor,
                         xyz2: torch.Tensor) -> List[torch.Tensor]:
     dist1, idx1 = kd_closest_query_cuda(xyz1, xyz2)
     dist2, idx2 = kd_closest_query_cuda(xyz2, xyz1)
-    return dist1, idx1, dist2, idx2
+    return dist1, dist2, idx1, idx2
 
 
 chamfer_triton_kd.register_autograd(
