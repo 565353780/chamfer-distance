@@ -8,7 +8,6 @@ import chamfer_cpp
 
 from chamfer_distance.Method.check import checkResults
 from chamfer_distance.Method.chamfer_triton import chamfer_triton
-from chamfer_distance.Method.chamfer_triton_kd import chamfer_triton_kd
 from chamfer_distance.Module.timer import Timer
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -57,7 +56,7 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
         'cpu': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
         'cuda': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
         'triton': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'triton_kd': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n)))
+        'cuda_kd': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n)))
     }
     
     # 遍历点云大小组合，只测试m>=n的情况
@@ -111,16 +110,16 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             results['triton'][i, j] = triton_fps
             
             # 测试Triton KD版本
-            triton_kd_fps = get_func_fps('chamfer_triton_kd', chamfer_triton_kd, 
+            cuda_kd_fps = get_func_fps('chamfer_cuda_kd', chamfer_cpp.chamfer_cuda_kd, 
                                         xyz1, xyz2, test_second)
-            results['triton_kd'][i, j] = triton_kd_fps
+            results['cuda_kd'][i, j] = cuda_kd_fps
             
             # 打印当前组合的结果
             print(f"点云大小 P={m}, Q={n} 的FPS结果:")
             print(f"CPU: {results['cpu'][i, j]:.2f}")
             print(f"CUDA: {results['cuda'][i, j]:.2f}")
             print(f"Triton: {results['triton'][i, j]:.2f}")
-            print(f"Triton KD: {results['triton_kd'][i, j]:.2f}")
+            print(f"CUDA KD: {results['cuda_kd'][i, j]:.2f}")
     
     return results
 
@@ -135,8 +134,8 @@ def visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes
         point_cloud_sizes_m: 第一个点云的点数列表
         point_cloud_sizes_n: 第二个点云的点数列表
     """
-    algorithms = ['cpu', 'cuda', 'triton', 'triton_kd']
-    algo_names = {'cpu': 'CPU', 'cuda': 'CUDA', 'triton': 'Triton', 'triton_kd': 'Triton KD'}
+    algorithms = ['cpu', 'cuda', 'triton', 'cuda_kd']
+    algo_names = {'cpu': 'CPU', 'cuda': 'CUDA', 'triton': 'Triton', 'cuda_kd': 'CUDA KD'}
     
     # 创建一个2x2的子图布局
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
@@ -238,8 +237,8 @@ def visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes
 def test():
     torch.manual_seed(0)
 
-    xyz1 = torch.randn(38000, 3).cuda()
-    xyz2 = torch.randn(400000, 3).cuda()
+    xyz1 = torch.randn(1, 38000, 3).cuda()
+    xyz2 = torch.randn(1, 400000, 3).cuda()
     test_second = 1.0
 
     xyz1.requires_grad_(True)
@@ -249,29 +248,35 @@ def test():
     checkResults(chamfer_triton, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
     print('checkResults passed!')
 
-    print('start check results of chamfer_triton_kd...')
-    checkResults(chamfer_triton_kd, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
+    print('start check results of chamfer_cuda_kd...')
+    checkResults(chamfer_cpp.chamfer_cuda_kd, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
     print('checkResults passed!')
 
+    # print('start check results of chamfer_cuda_kd_cub...')
+    # checkResults(chamfer_cpp.chamfer_cuda_kd_cub, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
+    # print('checkResults passed!')
+
     chamfer_cpu_fps = 0
-    if xyz1.shape[0] * xyz2.shape[0] > 40000 ** 2:
+    if xyz1.shape[1] * xyz2.shape[1] > 40000 ** 2:
         print('the size of input xyz are too large! will ignored the chamfer_cpu speed test!')
     else:
         try:
-            chamfer_cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, xyz1[None, ...].cpu(), xyz2[None, ...].cpu(), test_second)
+            chamfer_cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, xyz1.cpu(), xyz2.cpu(), test_second)
         except Exception as e:
             print('get_func_fps failed for chamfer_cpu! maybe the size of input xyz are too large!')
             print(e)
             pass
-    chamfer_cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, xyz1[None, ...], xyz2[None, ...], test_second)
+    chamfer_cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, xyz1, xyz2, test_second)
     chamfer_triton_fps = get_func_fps('chamfer_triton', chamfer_triton, xyz1, xyz2, test_second)
-    chamfer_triton_kd_fps = get_func_fps('chamfer_triton_kd', chamfer_triton_kd, xyz1, xyz2, test_second)
+    chamfer_cuda_kd_fps = get_func_fps('chamfer_cuda_kd', chamfer_cpp.chamfer_cuda_kd, xyz1, xyz2, test_second)
+    # chamfer_cuda_kd_cub_fps = get_func_fps('chamfer_cuda_kd_cub', chamfer_cpp.chamfer_cuda_kd_cub, xyz1, xyz2, test_second)
 
     print('fps list:')
     print('cpu:\t\t', chamfer_cpu_fps)
     print('cuda:\t\t', chamfer_cuda_fps)
     print('triton:\t\t', chamfer_triton_fps)
-    print('triton_kd:\t', chamfer_triton_kd_fps)
+    print('cuda_kd:\t', chamfer_cuda_kd_fps)
+    # print('cuda_kd_cub:\t', chamfer_cuda_kd_cub_fps)
     
     # 测试recordChamferAlgoSpeed函数
     print("\n是否运行Chamfer算法性能对比测试? (y/n)")
