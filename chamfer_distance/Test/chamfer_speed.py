@@ -56,7 +56,8 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
         'cpu': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
         'cuda': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
         'triton': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'cuda_kd': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n)))
+        'cuda_kd': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
+        'cuda_kd_cub': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
     }
     
     # 遍历点云大小组合，只测试m>=n的情况
@@ -113,13 +114,19 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             cuda_kd_fps = get_func_fps('chamfer_cuda_kd', chamfer_cpp.chamfer_cuda_kd, 
                                         xyz1, xyz2, test_second)
             results['cuda_kd'][i, j] = cuda_kd_fps
-            
+
+            # 测试Triton KD版本
+            cuda_kd_cub_fps = get_func_fps('chamfer_cuda_kd_cub', chamfer_cpp.chamfer_cuda_kd_cub, 
+                                        xyz1, xyz2, test_second)
+            results['cuda_kd_cub'][i, j] = cuda_kd_cub_fps
+
             # 打印当前组合的结果
             print(f"点云大小 P={m}, Q={n} 的FPS结果:")
             print(f"CPU: {results['cpu'][i, j]:.2f}")
             print(f"CUDA: {results['cuda'][i, j]:.2f}")
             print(f"Triton: {results['triton'][i, j]:.2f}")
             print(f"CUDA KD: {results['cuda_kd'][i, j]:.2f}")
+            print(f"CUDA KD CUB: {results['cuda_kd_cub'][i, j]:.2f}")
     
     return results
 
@@ -134,8 +141,8 @@ def visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes
         point_cloud_sizes_m: 第一个点云的点数列表
         point_cloud_sizes_n: 第二个点云的点数列表
     """
-    algorithms = ['cpu', 'cuda', 'triton', 'cuda_kd']
-    algo_names = {'cpu': 'CPU', 'cuda': 'CUDA', 'triton': 'Triton', 'cuda_kd': 'CUDA KD'}
+    algorithms = ['cpu', 'cuda', 'triton', 'cuda_kd', 'cuda_kd_cub']
+    algo_names = {'cpu': 'CPU', 'cuda': 'CUDA', 'triton': 'Triton', 'cuda_kd': 'CUDA KD', 'cuda_kd_cub': 'CUDA KD CUB'}
     
     # 创建一个2x2的子图布局
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
