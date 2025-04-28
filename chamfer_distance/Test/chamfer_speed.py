@@ -79,8 +79,8 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             print(f"\n测试点云大小: P={m}, Q={n}")
             
             # 创建随机点云
-            xyz1 = torch.randn(m, 3).cuda()
-            xyz2 = torch.randn(n, 3).cuda()
+            xyz1 = torch.randn(1, m, 3).cuda()
+            xyz2 = torch.randn(1, n, 3).cuda()
             
             # 设置梯度追踪
             xyz1.requires_grad_(True)
@@ -90,7 +90,7 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             if m * n <= 40000 ** 2:
                 try:
                     cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, 
-                                          xyz1[None, ...].cpu(), xyz2[None, ...].cpu(), test_second)
+                                          xyz1.cpu(), xyz2.cpu(), test_second)
                     results['cpu'][i, j] = cpu_fps
                 except Exception as e:
                     print(f'CPU版本测试失败: {e}')
@@ -101,7 +101,7 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             
             # 测试CUDA版本
             cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, 
-                                   xyz1[None, ...], xyz2[None, ...], test_second)
+                                   xyz1, xyz2, test_second)
             results['cuda'][i, j] = cuda_fps
             
             # 测试Triton版本
@@ -252,9 +252,9 @@ def test():
     checkResults(chamfer_cpp.chamfer_cuda_kd, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
     print('checkResults passed!')
 
-    # print('start check results of chamfer_cuda_kd_cub...')
-    # checkResults(chamfer_cpp.chamfer_cuda_kd_cub, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
-    # print('checkResults passed!')
+    print('start check results of chamfer_cuda_kd_cub...')
+    checkResults(chamfer_cpp.chamfer_cuda_kd_cub, chamfer_cpp.chamfer_cuda, xyz1, xyz2)
+    print('checkResults passed!')
 
     chamfer_cpu_fps = 0
     if xyz1.shape[1] * xyz2.shape[1] > 40000 ** 2:
@@ -269,15 +269,15 @@ def test():
     chamfer_cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, xyz1, xyz2, test_second)
     chamfer_triton_fps = get_func_fps('chamfer_triton', chamfer_triton, xyz1, xyz2, test_second)
     chamfer_cuda_kd_fps = get_func_fps('chamfer_cuda_kd', chamfer_cpp.chamfer_cuda_kd, xyz1, xyz2, test_second)
-    # chamfer_cuda_kd_cub_fps = get_func_fps('chamfer_cuda_kd_cub', chamfer_cpp.chamfer_cuda_kd_cub, xyz1, xyz2, test_second)
+    chamfer_cuda_kd_cub_fps = get_func_fps('chamfer_cuda_kd_cub', chamfer_cpp.chamfer_cuda_kd_cub, xyz1, xyz2, test_second)
 
     print('fps list:')
     print('cpu:\t\t', chamfer_cpu_fps)
     print('cuda:\t\t', chamfer_cuda_fps)
     print('triton:\t\t', chamfer_triton_fps)
     print('cuda_kd:\t', chamfer_cuda_kd_fps)
-    # print('cuda_kd_cub:\t', chamfer_cuda_kd_cub_fps)
-    
+    print('cuda_kd_cub:\t', chamfer_cuda_kd_cub_fps)
+
     # 测试recordChamferAlgoSpeed函数
     print("\n是否运行Chamfer算法性能对比测试? (y/n)")
     run_benchmark = input().strip().lower() == 'y'
