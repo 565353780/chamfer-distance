@@ -53,14 +53,6 @@ class ChamferDistances(object):
         return dists1, dists2, idxs1, idxs2
 
     @staticmethod
-    def cuda_kd_cub(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        dists1, dists2, idxs1, idxs2 = chamfer_cpp.chamfer_cuda_kd_cub(xyz1, xyz2)
-        return dists1, dists2, idxs1, idxs2
-
-    @staticmethod
     def getAlgoDict() -> dict:
         cpu_algo_dict = {
             'cpu': ChamferDistances.cpu,
@@ -70,11 +62,10 @@ class ChamferDistances(object):
             'cuda': ChamferDistances.cuda,
             'triton': ChamferDistances.triton,
             'cuda_kd': ChamferDistances.cuda_kd,
-            'cuda_kd_cub': ChamferDistances.cuda_kd_cub,
         }
 
         if torch.cuda.is_available():
-            return cpu_algo_dict | gpu_algo_dict
+            return gpu_algo_dict
 
         return cpu_algo_dict
 
