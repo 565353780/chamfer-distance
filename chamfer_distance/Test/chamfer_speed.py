@@ -219,21 +219,12 @@ def visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes
 def test():
     torch.manual_seed(0)
 
-    xyz1 = torch.randn(1, 4000, 3).cuda()
-    xyz2 = torch.randn(1, 4000, 3).cuda()
+    xyz1_shape = [1, 4000, 3]
+    xyz2_shape = [1, 4000, 3]
     test_second = 1.0
 
-    xyz1.requires_grad_(True)
-    xyz2.requires_grad_(True)
-
-    algo_dict = ChamferDistances.getAlgoDict()
-
-    for algo_name, algo_func in algo_dict.items():
-        if algo_name == ChamferDistances.getBenchmarkAlgoName():
-            continue
-        print('start check results of ' + algo_name + '...')
-        checkResults(algo_func, ChamferDistances.getBenchmarkAlgo(), xyz1, xyz2)
-        print('checkResults passed!')
+    ChamferDistances.check(xyz1_shape, xyz2_shape)
+    exit()
 
     chamfer_cpu_fps = SpeedManager.getAlgoFPS('cpu', xyz1.cpu(), xyz2.cpu(), test_second)
     chamfer_cuda_fps = SpeedManager.getAlgoFPS('cuda', xyz1, xyz2, test_second)

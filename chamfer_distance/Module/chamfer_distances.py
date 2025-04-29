@@ -4,6 +4,7 @@ from typing import Tuple
 import chamfer_cpp
 
 from chamfer_distance.Method.chamfer_triton import chamfer_triton
+from chamfer_distance.Method.check import checkResults
 
 
 class ChamferDistances(object):
@@ -72,6 +73,10 @@ class ChamferDistances(object):
         return algo_dict
 
     @staticmethod
+    def getAlgoNameList() -> list:
+        return list(ChamferDistances.getAlgoDict().keys())
+
+    @staticmethod
     def namedAlgo(algo_name: str):
         algo_dict = ChamferDistances.getAlgoDict()
 
@@ -92,3 +97,23 @@ class ChamferDistances(object):
     @staticmethod
     def getBenchmarkAlgo():
         return ChamferDistances.namedAlgo(ChamferDistances.getBenchmarkAlgoName())
+
+    @staticmethod
+    def check(
+        xyz1_shape: list = [1, 4000, 3],
+        xyz2_shape: list = [1, 4000, 3],
+    ) -> bool:
+        xyz1 = torch.randn(*xyz1_shape).cuda()
+        xyz2 = torch.randn(*xyz2_shape).cuda()
+
+        xyz1.requires_grad_(True)
+        xyz2.requires_grad_(True)
+
+        algo_dict = ChamferDistances.getAlgoDict()
+
+        for algo_name, algo_func in algo_dict.items():
+            print('[INFO][ChamferDistances::check]')
+            print('\t start check [' + algo_name + ']...', end='')
+            checkResults(algo_func, ChamferDistances.getBenchmarkAlgo(), xyz1, xyz2)
+            print('\t passed!')
+        return True
