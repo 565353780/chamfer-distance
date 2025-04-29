@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from tqdm import trange
+from time import time
 
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.timer import Timer
@@ -15,7 +15,10 @@ class SpeedManager(object):
         algo_name: str,
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-        test_second: float = 1.0,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
     ) -> float:
         algo_func = ChamferDistances.namedAlgo(algo_name)
         if algo_func is None:
@@ -30,10 +33,14 @@ class SpeedManager(object):
                 return 0.0
 
         print('[INFO][SpeedManager]')
-        print('\t start test speed of [' + algo_name + ']...')
+        print('\t start test speed of [' + algo_name + ']...', end='')
+        fps_list = []
+        window = []
+
         timer = Timer()
-        calculate_num = 0
-        for _ in trange(10000000):
+        for i in range(100000000):
+            start = time()
+
             dist1, dist2, = algo_func(xyz1, xyz2)[:2]
             if isinstance(dist1, torch.Tensor):
                 mean = torch.mean(dist1) + torch.mean(dist2)
@@ -41,13 +48,31 @@ class SpeedManager(object):
                 mean = np.mean(dist1) + np.mean(dist2)
 
             assert mean >= 0
-            calculate_num += 1
 
-            spend_second = timer.now()
-            if spend_second >= test_second:
+            end = time()
+
+            fps = 1.0 / (end - start)
+            fps_list.append(fps)
+
+            if i < warmup:
+                continue
+
+            window.append(fps)
+            if len(window) > window_size:
+                window.pop(0)
+
+            if len(window) == window_size:
+                max_value = np.max(window)
+                std = np.std(window)
+                if std / max_value < rel_std_threshold:
+                    break
+
+            if timer.now() > max_test_second:
                 break
 
-        fps = calculate_num / timer.now()
+        fps = float(np.mean(window))
+
+        print('\t fps =', fps)
 
         return fps
 
@@ -55,7 +80,10 @@ class SpeedManager(object):
     def getAlgoFPSDict(
         xyz1_shape: list = [1, 4000, 3],
         xyz2_shape: list = [1, 4000, 3],
-        test_second: float = 1.0,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
     ) -> dict:
         xyz1 = torch.randn(*xyz1_shape).cuda()
         xyz2 = torch.randn(*xyz2_shape).cuda()
@@ -72,7 +100,10 @@ class SpeedManager(object):
                 algo_name,
                 xyz1,
                 xyz2,
-                test_second,
+                max_test_second,
+                warmup,
+                window_size,
+                rel_std_threshold,
             )
 
             algo_fps_dict[algo_name] = algo_fps

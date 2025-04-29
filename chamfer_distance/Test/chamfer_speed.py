@@ -11,7 +11,7 @@ plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
 
-def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second=1.0):
+def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n):
     algo_name_list = ChamferDistances.getAlgoNameList()
 
     results = {}
@@ -23,12 +23,13 @@ def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second
             if m > n:
                 continue
 
-            print(f"\n测试点云大小: P={m}, Q={n}")
+            print('[INFO][chamfer_speed::recordChamferAlgoSpeed]')
+            print(f"\t test point cloud sizes : P={m}, Q={n}")
 
             xyz1_shape = [1, m, 3]
             xyz2_shape = [1, n, 3]
 
-            algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape, test_second)
+            algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
 
             for algo_name, algo_fps in algo_fps_dict.items():
                 results[algo_name].addFPS(m, n, algo_fps)
@@ -154,11 +155,10 @@ def test():
 
     xyz1_shape = [1, 4000, 3]
     xyz2_shape = [1, 4000, 3]
-    test_second = 0.2
 
     ChamferDistances.check(xyz1_shape, xyz2_shape)
 
-    algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape, test_second)
+    algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
 
     print('fps:')
     for algo_name, algo_fps in algo_fps_dict.items():
@@ -168,7 +168,7 @@ def test():
     point_cloud_sizes_n = [100, 500, 1000, 5000]
 
     print("\n开始进行Chamfer算法性能对比测试...")
-    results = recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second)
+    results = recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n)
 
     print("\n性能测试结果矩阵:")
     for algo, matrix in results.items():
