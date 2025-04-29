@@ -112,6 +112,41 @@ class SpeedManager(object):
         return algo_fps_dict
 
     @staticmethod
+    def getAlgoBalanceFPSMapDict(
+        calculation_num: int = 10000 ** 2,
+        split_num: int = 10,
+        max_unbalance_weight: float = 9.0,
+    ) -> dict:
+        ratios = np.geomspace(1.0 / max_unbalance_weight, max_unbalance_weight, num=split_num)
+        xy_pairs = []
+
+        for r in ratios:
+            x = int(round((calculation_num * r) ** 0.5))
+            y = calculation_num // x
+            print(x, y, x * y)
+            xy_pairs.append((x, y))
+
+        algo_name_list = ChamferDistances.getAlgoNameList()
+
+        algo_fps_map_dict = {}
+        for algo_name in algo_name_list:
+            algo_fps_map_dict[algo_name] = FPSMap()
+
+        for m, n in xy_pairs:
+            print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+            print(f"\t test point cloud sizes : P={m}, Q={n}")
+
+            xyz1_shape = [1, m, 3]
+            xyz2_shape = [1, n, 3]
+
+            algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
+
+            for algo_name, algo_fps in algo_fps_dict.items():
+                algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps, False)
+
+        return algo_fps_map_dict
+
+    @staticmethod
     def getAlgoFPSMapDict(
         point_cloud_sizes_m: list,
         point_cloud_sizes_n: list,
