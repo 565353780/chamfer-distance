@@ -1,4 +1,4 @@
-from chamfer_distance.Method.render import renderAlgoFPSMapDict
+from chamfer_distance.Method.render import renderAlgoFPSMapDict, renderBestAlgoFPSMapDict
 from chamfer_distance.Module.speed_manager import SpeedManager
 
 
@@ -34,4 +34,15 @@ def demo_speed():
 
     print("\n生成可视化结果...")
     renderAlgoFPSMapDict(algo_fps_map_dict)
+    return True
+
+def demo_best_speed():
+    point_cloud_sizes_m = [100, 1000, 10000, 100000]
+    point_cloud_sizes_n = [100, 1000, 10000, 100000]
+
+    print("\n开始进行Chamfer算法性能对比测试...")
+    algo_fps_map_dict = SpeedManager.getAlgoFPSMapDict(point_cloud_sizes_m, point_cloud_sizes_n)
+
+    print("\n生成可视化结果...")
+    renderBestAlgoFPSMapDict(algo_fps_map_dict)
     return True

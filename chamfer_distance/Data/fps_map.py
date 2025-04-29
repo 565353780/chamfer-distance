@@ -40,6 +40,16 @@ class FPSMap(object):
 
         return True
 
+    def toXY(self) -> np.ndarray:
+        xy_list = list(self.fps_dict.keys())
+        xy = np.asarray(xy_list).transpose(1, 0)
+        return xy
+
+    def toFPS(self) -> np.ndarray:
+        fps_list = list(self.fps_dict.values())
+        fps = np.asarray(fps_list)
+        return fps
+
     def toXYFPS(self) -> np.ndarray:
         x_list = []
         y_list = []
