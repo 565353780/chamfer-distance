@@ -1,20 +1,16 @@
 import numpy as np
 
-def createDataMapDict(data_list: list) -> dict:
-    if len(data_list) == 0:
+def createDataMapDict(data: np.ndarray) -> dict:
+    if data.shape[0] == 0:
         return {}
 
-    if len(data_list) < 2:
-        data_array = np.asarray(data_list[0])
-    else:
-        data_array = np.hstack(data_list)
-
-    sorted_data_array = np.sort(data_array)
+    unique_data = np.unique(data)
+    sorted_data = np.sort(unique_data)
 
     data_map = {}
 
-    for i in range(sorted_data_array.shape[0]):
-        data_map[sorted_data_array[i]] = i
+    for i in range(sorted_data.shape[0]):
+        data_map[sorted_data[i]] = i
 
     return data_map
 

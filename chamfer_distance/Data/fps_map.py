@@ -55,8 +55,8 @@ class FPSMap(object):
     def render(self) -> bool:
         x, y, fps = self.toXYFPS()
 
-        x_map = createDataMapDict([x])
-        y_map = createDataMapDict([y])
+        x_map = createDataMapDict(x)
+        y_map = createDataMapDict(y)
 
         mapped_x = mapData(x, x_map)
         mapped_y = mapData(y, y_map)

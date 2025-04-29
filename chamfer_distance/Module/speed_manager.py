@@ -2,6 +2,7 @@ import torch
 import numpy as np
 from time import time
 
+from chamfer_distance.Data.fps_map import FPSMap
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.timer import Timer
 
@@ -109,3 +110,32 @@ class SpeedManager(object):
             algo_fps_dict[algo_name] = algo_fps
 
         return algo_fps_dict
+
+    @staticmethod
+    def getAlgoFPSMapDict(
+        point_cloud_sizes_m: list,
+        point_cloud_sizes_n: list,
+    ) -> dict:
+        algo_name_list = ChamferDistances.getAlgoNameList()
+
+        algo_fps_map_dict = {}
+        for algo_name in algo_name_list:
+            algo_fps_map_dict[algo_name] = FPSMap()
+
+        for m in point_cloud_sizes_m:
+            for n in point_cloud_sizes_n:
+                if m > n:
+                    continue
+
+                print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+                print(f"\t test point cloud sizes : P={m}, Q={n}")
+
+                xyz1_shape = [1, m, 3]
+                xyz2_shape = [1, n, 3]
+
+                algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
+
+                for algo_name, algo_fps in algo_fps_dict.items():
+                    algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps)
+
+        return algo_fps_map_dict
