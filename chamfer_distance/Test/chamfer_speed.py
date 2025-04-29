@@ -3,7 +3,6 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from chamfer_distance.Method.check import checkResults
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.speed_manager import SpeedManager
 
@@ -224,20 +223,12 @@ def test():
     test_second = 1.0
 
     ChamferDistances.check(xyz1_shape, xyz2_shape)
-    exit()
 
-    chamfer_cpu_fps = SpeedManager.getAlgoFPS('cpu', xyz1.cpu(), xyz2.cpu(), test_second)
-    chamfer_cuda_fps = SpeedManager.getAlgoFPS('cuda', xyz1, xyz2, test_second)
-    chamfer_triton_fps = SpeedManager.getAlgoFPS('triton', xyz1, xyz2, test_second)
-    chamfer_cuda_kd_fps = SpeedManager.getAlgoFPS('cuda_kd', xyz1, xyz2, test_second)
-    chamfer_cuda_kd_cub_fps = SpeedManager.getAlgoFPS('cuda_kd_cub', xyz1, xyz2, test_second)
+    algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape, test_second)
 
-    print('fps list:')
-    print('cpu:\t\t', chamfer_cpu_fps)
-    print('cuda:\t\t', chamfer_cuda_fps)
-    print('triton:\t\t', chamfer_triton_fps)
-    print('cuda_kd:\t', chamfer_cuda_kd_fps)
-    print('cuda_kd_cub:\t', chamfer_cuda_kd_cub_fps)
+    print('fps:')
+    for algo_name, algo_fps in algo_fps_dict.items():
+        print(algo_name, ':', algo_fps)
     exit()
 
     # 测试recordChamferAlgoSpeed函数

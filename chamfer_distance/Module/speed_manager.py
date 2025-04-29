@@ -50,3 +50,31 @@ class SpeedManager(object):
         fps = calculate_num / timer.now()
 
         return fps
+
+    @staticmethod
+    def getAlgoFPSDict(
+        xyz1_shape: list = [1, 4000, 3],
+        xyz2_shape: list = [1, 4000, 3],
+        test_second: float = 1.0,
+    ) -> dict:
+        xyz1 = torch.randn(*xyz1_shape).cuda()
+        xyz2 = torch.randn(*xyz2_shape).cuda()
+
+        xyz1.requires_grad_(True)
+        xyz2.requires_grad_(True)
+
+        algo_fps_dict = {}
+
+        algo_name_list = ChamferDistances.getAlgoNameList()
+
+        for algo_name in algo_name_list:
+            algo_fps = SpeedManager.getAlgoFPS(
+                algo_name,
+                xyz1,
+                xyz2,
+                test_second,
+            )
+
+            algo_fps_dict[algo_name] = algo_fps
+
+        return algo_fps_dict
