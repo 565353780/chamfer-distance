@@ -34,11 +34,11 @@ class SpeedManager(object):
         timer = Timer()
         calculate_num = 0
         for _ in trange(10000000):
-            dist1, dist2, idx1, idx2 = algo_func(xyz1, xyz2)
+            dist1, dist2, = algo_func(xyz1, xyz2)[:2]
             if isinstance(dist1, torch.Tensor):
-                mean = torch.mean(dist1)
+                mean = torch.mean(dist1) + torch.mean(dist2)
             else:
-                mean = np.mean(dist1)
+                mean = np.mean(dist1) + np.mean(dist2)
 
             assert mean >= 0
             calculate_num += 1

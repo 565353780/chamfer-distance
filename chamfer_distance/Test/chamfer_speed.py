@@ -3,6 +3,7 @@ import numpy as np
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from chamfer_distance.Data.fps_map import FPSMap
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.speed_manager import SpeedManager
 
@@ -11,97 +12,30 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 def recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second=1.0):
-    """
-    记录不同点云大小组合下四种Chamfer距离算法的性能
-    由于m和n的size是对称的，因此仅测试m>=n时的情况
-    
-    Args:
-        point_cloud_sizes_m: 第一个点云的点数列表
-        point_cloud_sizes_n: 第二个点云的点数列表
-        test_second: 每个测试运行的秒数
-        
-    Returns:
-        results: 字典，包含四种算法在不同点云大小组合下的FPS矩阵
-    """
-    torch.manual_seed(0)
-    
-    # 初始化结果矩阵
-    results = {
-        'cpu': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'cuda': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'triton': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'cuda_kd': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-        'cuda_kd_cub': np.zeros((len(point_cloud_sizes_m), len(point_cloud_sizes_n))),
-    }
-    
-    # 遍历点云大小组合，只测试m>=n的情况
-    for i, m in enumerate(point_cloud_sizes_m):
-        for j, n in enumerate(point_cloud_sizes_n):
-            # 只测试m>=n的情况
-            if m < n:
-                # 对于m<n的情况，使用对称性，直接使用已测试的结果
-                print(f"\n跳过测试点云大小: P={m}, Q={n}，使用P={n}, Q={m}的结果")
-                # 找到对应的索引
-                n_idx = point_cloud_sizes_m.index(n) if n in point_cloud_sizes_m else -1
-                m_idx = point_cloud_sizes_n.index(m) if m in point_cloud_sizes_n else -1
-                
-                # 如果找到对应的索引，则使用对称结果
-                if n_idx >= 0 and m_idx >= 0 and results['cpu'][n_idx, m_idx] != 0:
-                    for algo in results.keys():
-                        results[algo][i, j] = results[algo][n_idx, m_idx]
-                    continue
-            
+    algo_name_list = ChamferDistances.getAlgoNameList()
+
+    results = {}
+    for algo_name in algo_name_list:
+        results[algo_name] = FPSMap()
+
+    for m in point_cloud_sizes_m:
+        for n in point_cloud_sizes_n:
+            if m > n:
+                continue
+
             print(f"\n测试点云大小: P={m}, Q={n}")
-            
-            # 创建随机点云
-            xyz1 = torch.randn(1, m, 3).cuda()
-            xyz2 = torch.randn(1, n, 3).cuda()
-            
-            # 设置梯度追踪
-            xyz1.requires_grad_(True)
-            xyz2.requires_grad_(True)
-            
-            # 测试CPU版本（如果点云不太大）
-            if m * n <= 40000 ** 2:
-                try:
-                    cpu_fps = get_func_fps('chamfer_cpu', chamfer_cpp.chamfer_cpu, 
-                                          xyz1.cpu(), xyz2.cpu(), test_second)
-                    results['cpu'][i, j] = cpu_fps
-                except Exception as e:
-                    print(f'CPU版本测试失败: {e}')
-                    results['cpu'][i, j] = 0
-            else:
-                print('点云规模过大，跳过CPU版本测试')
-                results['cpu'][i, j] = 0
-            
-            # 测试CUDA版本
-            cuda_fps = get_func_fps('chamfer_cuda', chamfer_cpp.chamfer_cuda, 
-                                   xyz1, xyz2, test_second)
-            results['cuda'][i, j] = cuda_fps
-            
-            # 测试Triton版本
-            triton_fps = get_func_fps('chamfer_triton', chamfer_triton, 
-                                     xyz1, xyz2, test_second)
-            results['triton'][i, j] = triton_fps
-            
-            # 测试Triton KD版本
-            cuda_kd_fps = get_func_fps('chamfer_cuda_kd', chamfer_cpp.chamfer_cuda_kd, 
-                                        xyz1, xyz2, test_second)
-            results['cuda_kd'][i, j] = cuda_kd_fps
 
-            # 测试Triton KD版本
-            cuda_kd_cub_fps = get_func_fps('chamfer_cuda_kd_cub', chamfer_cpp.chamfer_cuda_kd_cub, 
-                                        xyz1, xyz2, test_second)
-            results['cuda_kd_cub'][i, j] = cuda_kd_cub_fps
+            xyz1_shape = [1, m, 3]
+            xyz2_shape = [1, n, 3]
 
-            # 打印当前组合的结果
-            print(f"点云大小 P={m}, Q={n} 的FPS结果:")
-            print(f"CPU: {results['cpu'][i, j]:.2f}")
-            print(f"CUDA: {results['cuda'][i, j]:.2f}")
-            print(f"Triton: {results['triton'][i, j]:.2f}")
-            print(f"CUDA KD: {results['cuda_kd'][i, j]:.2f}")
-            print(f"CUDA KD CUB: {results['cuda_kd_cub'][i, j]:.2f}")
-    
+            algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape, test_second)
+
+            for algo_name, algo_fps in algo_fps_dict.items():
+                results[algo_name].addFPS(m, n, algo_fps)
+
+    results['cuda'].render()
+    exit()
+
     return results
 
 
@@ -220,7 +154,7 @@ def test():
 
     xyz1_shape = [1, 4000, 3]
     xyz2_shape = [1, 4000, 3]
-    test_second = 1.0
+    test_second = 0.2
 
     ChamferDistances.check(xyz1_shape, xyz2_shape)
 
@@ -229,39 +163,29 @@ def test():
     print('fps:')
     for algo_name, algo_fps in algo_fps_dict.items():
         print(algo_name, ':', algo_fps)
-    exit()
 
-    # 测试recordChamferAlgoSpeed函数
-    print("\n是否运行Chamfer算法性能对比测试? (y/n)")
-    run_benchmark = input().strip().lower() == 'y'
+    point_cloud_sizes_m = [100, 500, 1000, 5000]
+    point_cloud_sizes_n = [100, 500, 1000, 5000]
+
+    print("\n开始进行Chamfer算法性能对比测试...")
+    results = recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second)
+
+    print("\n性能测试结果矩阵:")
+    for algo, matrix in results.items():
+        print(f"\n{algo} 算法:")
+        print(matrix)
     
-    if run_benchmark:
-        # 定义不同的点云大小
-        point_cloud_sizes_m = [10000, 50000, 100000, 500000]
-        point_cloud_sizes_n = [10000, 50000, 100000, 500000]
-        
-        print("\n开始进行Chamfer算法性能对比测试...")
-        results = recordChamferAlgoSpeed(point_cloud_sizes_m, point_cloud_sizes_n, test_second=1.0)
-        
-        print("\n性能测试结果矩阵:")
-        for algo, matrix in results.items():
-            print(f"\n{algo} 算法:")
-            print(matrix)
-        
-        # 可视化结果
-        print("\n生成可视化结果...")
-        visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes_n)
-        print("\n可视化结果已保存为PNG文件")
-        
-        # 找出整体最佳算法
-        all_fps = []
-        for algo in ['cpu', 'cuda', 'triton', 'triton_kd']:
-            all_fps.append(np.mean(results[algo]))
-        
-        best_overall = ['cpu', 'cuda', 'triton', 'triton_kd'][np.argmax(all_fps)]
-        print(f"\n综合所有测试情况，平均性能最佳的算法是: {best_overall}")
-        print(f"平均FPS: {np.max(all_fps):.2f}")
-    else:
-        print("跳过性能对比测试。")
+    # 可视化结果
+    print("\n生成可视化结果...")
+    visualizeChamferSpeedResults(results, point_cloud_sizes_m, point_cloud_sizes_n)
+    print("\n可视化结果已保存为PNG文件")
     
+    # 找出整体最佳算法
+    all_fps = []
+    for algo in ['cpu', 'cuda', 'triton', 'triton_kd']:
+        all_fps.append(np.mean(results[algo]))
+    
+    best_overall = ['cpu', 'cuda', 'triton', 'triton_kd'][np.argmax(all_fps)]
+    print(f"\n综合所有测试情况，平均性能最佳的算法是: {best_overall}")
+    print(f"平均FPS: {np.max(all_fps):.2f}")
     return True
