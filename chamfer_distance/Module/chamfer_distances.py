@@ -62,15 +62,21 @@ class ChamferDistances(object):
 
     @staticmethod
     def getAlgoDict() -> dict:
-        algo_dict = {
+        cpu_algo_dict = {
             'cpu': ChamferDistances.cpu,
+        }
+
+        gpu_algo_dict = {
             'cuda': ChamferDistances.cuda,
             'triton': ChamferDistances.triton,
             'cuda_kd': ChamferDistances.cuda_kd,
             'cuda_kd_cub': ChamferDistances.cuda_kd_cub,
         }
 
-        return algo_dict
+        if torch.cuda.is_available():
+            return cpu_algo_dict | gpu_algo_dict
+
+        return cpu_algo_dict
 
     @staticmethod
     def getAlgoNameList() -> list:
