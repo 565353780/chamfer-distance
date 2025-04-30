@@ -14,12 +14,6 @@ conda activate cd
 python create_fusion.py
 ```
 
-## Run
-
-```bash
-python demo.py
-```
-
 ## Algo Balance Test
 
 ```bash
@@ -37,7 +31,7 @@ python test_best_speed_curve.py
 
 and you can get the curve like
 
-![Algo FPS Curve](./asset/algo_fps_curve.png)
+![Algo FPS Curve](./asset/algo_fps_curve.jpg)
 
 Just use like
 

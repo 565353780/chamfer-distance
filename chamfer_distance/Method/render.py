@@ -164,7 +164,7 @@ def renderAlgoFPSMapDictCurve(algo_fps_map_dict: dict) -> bool:
     plt.grid(True)
     plt.tight_layout()
 
-    save_algo_fps_curve_image_file_path = '../chamfer-distance/output/algo_fps_curve.png'
+    save_algo_fps_curve_image_file_path = '../chamfer-distance/output/algo_fps_curve.jpg'
     createFileFolder(save_algo_fps_curve_image_file_path)
     plt.savefig(save_algo_fps_curve_image_file_path, dpi=300, bbox_inches='tight')
 
