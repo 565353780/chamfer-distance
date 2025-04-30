@@ -31,7 +31,7 @@ python test_best_speed_curve.py
 
 and you can get the curve like
 
-![Algo FPS Curve](./asset/algo_fps_curve.png)
+![Algo FPS Curve](https://github.com/565353780/chamfer-distance/blob/master/asset/algo_fps_curve.png)
 
 Just use like
 
