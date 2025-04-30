@@ -4,6 +4,7 @@ from matplotlib.cm import get_cmap
 from matplotlib.patches import Patch
 
 from chamfer_distance.Method.map import createDataMapDict, mapData
+from chamfer_distance.Method.path import createFileFolder
 
 
 def renderAlgoFPSMapDict(algo_fps_map_dict: dict, free_width: float = 0.1) -> bool:
@@ -162,5 +163,10 @@ def renderAlgoFPSMapDictCurve(algo_fps_map_dict: dict) -> bool:
     plt.legend(loc="best")
     plt.grid(True)
     plt.tight_layout()
+
+    save_algo_fps_curve_image_file_path = '../chamfer-distance/output/algo_fps_curve.png'
+    createFileFolder(save_algo_fps_curve_image_file_path)
+    plt.savefig(save_algo_fps_curve_image_file_path, dpi=300, bbox_inches='tight')
+
     plt.show()
     return True
