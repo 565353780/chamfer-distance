@@ -5,7 +5,9 @@ from time import time
 from typing import Union
 from scipy.optimize import brentq
 
+from chamfer_distance.Config.path import ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Data.fps_map import FPSMap
+from chamfer_distance.Method.path import createFileFolder
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.timer import Timer
 
@@ -299,3 +301,21 @@ class SpeedManager(object):
         )
 
         return equal_fps_point
+
+    @staticmethod
+    def saveEqualFPSPoint(
+        algo_interval_dict: dict,
+        save_equal_fps_point_txt_file_path: str = ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
+    ) -> bool:
+        createFileFolder(save_equal_fps_point_txt_file_path)
+
+        with open(save_equal_fps_point_txt_file_path, 'w') as f:
+            for algo_name, algo_interval in algo_interval_dict.items():
+                f.write(algo_name)
+                f.write('|')
+                f.write(str(algo_interval[0]))
+                f.write('|')
+                f.write(str(algo_interval[1]))
+                f.write('\n')
+
+        return True

@@ -1,5 +1,6 @@
 from chamfer_distance.Method.sample import sqrt_uniform_array
 from chamfer_distance.Method.render import renderAlgoFPSMapDict, renderAlgoFPSMapDictCurve, renderBestAlgoFPSMapDict
+from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.speed_manager import SpeedManager
 
 
@@ -62,22 +63,31 @@ def demo_best_speed_curve():
     while SpeedManager.getAlgosFPSDiffSimple(algo_name_2, algo_name_3, max_calculation_num) > 0:
         max_calculation_num *= 2
 
-    print('current search interval: [', min_calculation_num, ',', max_calculation_num, ']')
-    print('start search the equal fps point...')
+    if ChamferDistances.algo_interval_dict is None:
+        print('current search interval: [', min_calculation_num, ',', max_calculation_num, ']')
+        print('start search the equal fps point...')
 
-    algo_12_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
-        algo_name_1, algo_name_2, min_calculation_num, max_calculation_num,
-        rel_std_threshold=0.001,
-    )
+        algo_12_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
+            algo_name_1, algo_name_2, min_calculation_num, max_calculation_num)
 
-    print('algo_12_equal_fps_point:', algo_12_equal_fps_point)
+        print('algo_12_equal_fps_point:', algo_12_equal_fps_point)
 
-    algo_23_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
-        algo_name_2, algo_name_3, min_calculation_num, max_calculation_num,
-        rel_std_threshold=0.001,
-    )
+        algo_23_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
+            algo_name_2, algo_name_3, min_calculation_num, max_calculation_num)
 
-    print('algo_23_equal_fps_point:', algo_23_equal_fps_point)
+        print('algo_23_equal_fps_point:', algo_23_equal_fps_point)
+
+        algo_interval_dict = {
+            'cuda': [0, algo_12_equal_fps_point],
+            'triton': [algo_12_equal_fps_point, algo_23_equal_fps_point],
+            'cuda_kd': [algo_23_equal_fps_point, float('inf')],
+        }
+
+        SpeedManager.saveEqualFPSPoint(algo_interval_dict)
+        ChamferDistances.loadFusionAlgo()
+    else:
+        algo_12_equal_fps_point = ChamferDistances.algo_interval_dict['triton'][0]
+        algo_23_equal_fps_point = ChamferDistances.algo_interval_dict['cuda_kd'][0]
 
     calculation_nums_1 = sqrt_uniform_array(start=min_calculation_num, stop=algo_12_equal_fps_point, num=10).tolist()
 

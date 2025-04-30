@@ -134,6 +134,8 @@ def renderAlgoFPSMapDictCurve(algo_fps_map_dict: dict) -> bool:
 
     cmap = get_cmap("tab10")
 
+    x_label_replaced = False
+
     algo_idx = 0
     for algo_name, algo_fps_map in algo_fps_map_dict.items():
         x, y, fps = algo_fps_map.toXYFPS()
@@ -141,13 +143,18 @@ def renderAlgoFPSMapDictCurve(algo_fps_map_dict: dict) -> bool:
 
         xy_map = createDataMapDict(xy)
 
-        mapped_xy = mapData(xy, xy_map)
+        mapped_xy = mapData(xy, xy_map) + 1
 
         color = cmap(algo_idx)
 
         plt.plot(mapped_xy, fps, label=algo_name, color=color)
 
         algo_idx += 1
+
+        if not x_label_replaced:
+            sqrt_xy = np.sqrt(xy).astype(int)
+            plt.xticks(ticks=mapped_xy, labels=sqrt_xy, rotation=45)
+            x_label_replaced = True
 
     plt.xlabel('XY')
     plt.ylabel('FPS')

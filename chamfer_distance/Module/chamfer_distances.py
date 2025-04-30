@@ -1,14 +1,24 @@
 import torch
-from typing import Tuple
+from typing import Union, Tuple
 
 import chamfer_cpp
 
+from chamfer_distance.Config.path import ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.chamfer_triton import chamfer_triton
 from chamfer_distance.Method.check import checkResults
+from chamfer_distance.Method.io import loadAlgoIntervalDict
 
 
 class ChamferDistances(object):
-    def __init__(self) -> None:
+    algo_interval_dict = loadAlgoIntervalDict()
+
+    @staticmethod
+    def loadFusionAlgo(algo_equal_fps_point_txt_file_path: str = ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH):
+        ChamferDistances.algo_interval_dict = loadAlgoIntervalDict(algo_equal_fps_point_txt_file_path)
+
+    def __init__(self, algo_equal_fps_point_txt_file_path: Union[str, None]) -> None:
+        if algo_equal_fps_point_txt_file_path is not None:
+            ChamferDistances.loadFusionAlgo(algo_equal_fps_point_txt_file_path)
         return
 
     @staticmethod
@@ -64,19 +74,13 @@ class ChamferDistances(object):
             'cuda_kd': ChamferDistances.cuda_kd,
         }
 
+        if ChamferDistances.algo_interval_dict is not None:
+            gpu_algo_dict['fusion'] = ChamferDistances.fusion
+
         if torch.cuda.is_available():
             return gpu_algo_dict
 
         return cpu_algo_dict
-
-    @staticmethod
-    def getAlgoNameList() -> list:
-        return list(ChamferDistances.getAlgoDict().keys())
-
-    @staticmethod
-    def isAlgoNameValid(algo_name: str) -> bool:
-        algo_name_list = ChamferDistances.getAlgoNameList()
-        return algo_name in algo_name_list
 
     @staticmethod
     def namedAlgo(algo_name: str):
@@ -91,6 +95,33 @@ class ChamferDistances(object):
             return None
 
         return algo_dict[algo_name]
+
+    @staticmethod
+    def fusion(
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        assert ChamferDistances.algo_interval_dict is not None
+
+        calculation_num = xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1]
+
+        for algo_name, algo_interval in ChamferDistances.algo_interval_dict.items():
+            if calculation_num < algo_interval[0] or calculation_num > algo_interval[1]:
+                continue
+
+            algo_func = ChamferDistances.namedAlgo(algo_name)
+            assert algo_func is not None
+
+            return algo_func(xyz1, xyz2)
+
+    @staticmethod
+    def getAlgoNameList() -> list:
+        return list(ChamferDistances.getAlgoDict().keys())
+
+    @staticmethod
+    def isAlgoNameValid(algo_name: str) -> bool:
+        algo_name_list = ChamferDistances.getAlgoNameList()
+        return algo_name in algo_name_list
 
     @staticmethod
     def getBenchmarkAlgoName():

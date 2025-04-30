@@ -8,3 +8,6 @@ build
 compile_commands.json
 dist
 *.so
+
+# output
+output
