@@ -1,6 +1,9 @@
 import torch
 import numpy as np
+from math import sqrt
 from time import time
+from typing import Union
+from scipy.optimize import brentq
 
 from chamfer_distance.Data.fps_map import FPSMap
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
@@ -78,6 +81,47 @@ class SpeedManager(object):
         return fps
 
     @staticmethod
+    def getAlgosFPSDiff(
+        algo_name_1: str,
+        algo_name_2: str,
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
+    ) -> float:
+        fps_1 = SpeedManager.getAlgoFPS(
+            algo_name_1, xyz1, xyz2, max_test_second, warmup, window_size, rel_std_threshold)
+        fps_2 = SpeedManager.getAlgoFPS(
+            algo_name_2, xyz1, xyz2, max_test_second, warmup, window_size, rel_std_threshold)
+        return fps_1 - fps_2
+
+    @staticmethod
+    def getAlgosFPSDiffSimple(
+        algo_name_1: str,
+        algo_name_2: str,
+        calculation_num: Union[int, float],
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
+    ) -> float:
+        x = int(sqrt(calculation_num))
+        y = int(calculation_num) // x
+        xyz1 = torch.randn(1, x, 3).cuda()
+        xyz2 = torch.randn(1, y, 3).cuda()
+
+        xyz1.requires_grad_(True)
+        xyz2.requires_grad_(True)
+
+        return SpeedManager.getAlgosFPSDiff(
+            algo_name_1, algo_name_2,
+            xyz1, xyz2,
+            max_test_second, warmup, window_size, rel_std_threshold,
+        )
+
+    @staticmethod
     def getAlgoFPSDict(
         xyz1_shape: list = [1, 4000, 3],
         xyz2_shape: list = [1, 4000, 3],
@@ -112,18 +156,16 @@ class SpeedManager(object):
         return algo_fps_dict
 
     @staticmethod
-    def getAlgoBalanceFPSMapDict(
-        calculation_num: int = 10000 ** 2,
-        split_num: int = 10,
-        max_unbalance_weight: float = 9.0,
+    def getAlgoSimpleFPSMapDict(
+        calculation_nums: list,
     ) -> dict:
-        ratios = np.geomspace(1.0 / max_unbalance_weight, max_unbalance_weight, num=split_num)
+        calculation_nums = [int(data) for data in calculation_nums]
+
         xy_pairs = []
 
-        for r in ratios:
-            x = int(round((calculation_num * r) ** 0.5))
+        for calculation_num in calculation_nums:
+            x = int(sqrt(calculation_num))
             y = calculation_num // x
-            print(x, y, x * y)
             xy_pairs.append((x, y))
 
         algo_name_list = ChamferDistances.getAlgoNameList()
@@ -147,9 +189,54 @@ class SpeedManager(object):
         return algo_fps_map_dict
 
     @staticmethod
+    def getAlgoBalanceFPSMapDict(
+        calculation_num: int = 10000 ** 2,
+        split_num: int = 10,
+        max_unbalance_weight: float = 9.0,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
+    ) -> dict:
+        ratios = np.geomspace(1.0 / max_unbalance_weight, max_unbalance_weight, num=split_num)
+        xy_pairs = []
+
+        for r in ratios:
+            x = int(round((calculation_num * r) ** 0.5))
+            y = calculation_num // x
+            xy_pairs.append((x, y))
+
+        algo_name_list = ChamferDistances.getAlgoNameList()
+
+        algo_fps_map_dict = {}
+        for algo_name in algo_name_list:
+            algo_fps_map_dict[algo_name] = FPSMap()
+
+        for m, n in xy_pairs:
+            print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+            print(f"\t test point cloud sizes : P={m}, Q={n}")
+
+            xyz1_shape = [1, m, 3]
+            xyz2_shape = [1, n, 3]
+
+            algo_fps_dict = SpeedManager.getAlgoFPSDict(
+                xyz1_shape, xyz2_shape,
+                max_test_second, warmup, window_size, rel_std_threshold,
+            )
+
+            for algo_name, algo_fps in algo_fps_dict.items():
+                algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps, False)
+
+        return algo_fps_map_dict
+
+    @staticmethod
     def getAlgoFPSMapDict(
         point_cloud_sizes_m: list,
         point_cloud_sizes_n: list,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
     ) -> dict:
         algo_name_list = ChamferDistances.getAlgoNameList()
 
@@ -168,9 +255,47 @@ class SpeedManager(object):
                 xyz1_shape = [1, m, 3]
                 xyz2_shape = [1, n, 3]
 
-                algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
+                algo_fps_dict = SpeedManager.getAlgoFPSDict(
+                    xyz1_shape, xyz2_shape,
+                    max_test_second, warmup, window_size, rel_std_threshold,
+                )
 
                 for algo_name, algo_fps in algo_fps_dict.items():
                     algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps)
 
         return algo_fps_map_dict
+
+    @staticmethod
+    def getAlgosEqualFPSPoint(
+        algo_name_1: str,
+        algo_name_2: str,
+        min_calculation_num: Union[int, float] = 1e4,
+        max_calculation_num: Union[int, float] = 1e10,
+        max_test_second: float = 1.0,
+        warmup: int = 10,
+        window_size: int = 10,
+        rel_std_threshold: float = 0.01,
+    ) -> Union[float, None]:
+        if not ChamferDistances.isAlgoNameValid(algo_name_1):
+            print('[ERROR][SpeedManager::getAlgosEqualFPSPoint]')
+            print('\t namedAlgo failed for algo name 1!')
+            return None
+        if not ChamferDistances.isAlgoNameValid(algo_name_2):
+            print('[ERROR][SpeedManager::getAlgosEqualFPSPoint]')
+            print('\t namedAlgo failed for algo name 2!')
+            return None
+
+        def fpsDiff(calculation_num: float) -> float:
+            fps_diff = SpeedManager.getAlgosFPSDiffSimple(
+                algo_name_1, algo_name_2, calculation_num,
+                max_test_second, warmup, window_size, rel_std_threshold,
+            )
+
+            return fps_diff
+
+        equal_fps_point = brentq(
+            fpsDiff, min_calculation_num, max_calculation_num,
+            xtol=1.0, rtol=1e-3, maxiter=100,
+        )
+
+        return equal_fps_point

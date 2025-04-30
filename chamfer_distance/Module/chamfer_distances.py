@@ -74,6 +74,11 @@ class ChamferDistances(object):
         return list(ChamferDistances.getAlgoDict().keys())
 
     @staticmethod
+    def isAlgoNameValid(algo_name: str) -> bool:
+        algo_name_list = ChamferDistances.getAlgoNameList()
+        return algo_name in algo_name_list
+
+    @staticmethod
     def namedAlgo(algo_name: str):
         algo_dict = ChamferDistances.getAlgoDict()
 

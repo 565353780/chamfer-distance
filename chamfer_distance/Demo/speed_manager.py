@@ -1,4 +1,5 @@
-from chamfer_distance.Method.render import renderAlgoFPSMapDict, renderBestAlgoFPSMapDict
+from chamfer_distance.Method.sample import sqrt_uniform_array
+from chamfer_distance.Method.render import renderAlgoFPSMapDict, renderAlgoFPSMapDictCurve, renderBestAlgoFPSMapDict
 from chamfer_distance.Module.speed_manager import SpeedManager
 
 
@@ -45,4 +46,50 @@ def demo_best_speed():
 
     print("\n生成可视化结果...")
     renderBestAlgoFPSMapDict(algo_fps_map_dict)
+    return True
+
+def demo_best_speed_curve():
+    min_calculation_num = 1e7
+    max_calculation_num = 3e9
+
+    algo_name_1 = 'cuda'
+    algo_name_2 = 'triton'
+    algo_name_3 = 'cuda_kd'
+
+    while SpeedManager.getAlgosFPSDiffSimple(algo_name_1, algo_name_2, min_calculation_num) < 0:
+        min_calculation_num /= 2
+
+    while SpeedManager.getAlgosFPSDiffSimple(algo_name_2, algo_name_3, max_calculation_num) > 0:
+        max_calculation_num *= 2
+
+    print('current search interval: [', min_calculation_num, ',', max_calculation_num, ']')
+    print('start search the equal fps point...')
+
+    algo_12_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
+        algo_name_1, algo_name_2, min_calculation_num, max_calculation_num,
+        rel_std_threshold=0.001,
+    )
+
+    print('algo_12_equal_fps_point:', algo_12_equal_fps_point)
+
+    algo_23_equal_fps_point = SpeedManager.getAlgosEqualFPSPoint(
+        algo_name_2, algo_name_3, min_calculation_num, max_calculation_num,
+        rel_std_threshold=0.001,
+    )
+
+    print('algo_23_equal_fps_point:', algo_23_equal_fps_point)
+
+    calculation_nums_1 = sqrt_uniform_array(start=min_calculation_num, stop=algo_12_equal_fps_point, num=10).tolist()
+
+    calculation_nums_2 = sqrt_uniform_array(start=algo_12_equal_fps_point, stop=algo_23_equal_fps_point, num=10).tolist()
+
+    calculation_nums_3 = sqrt_uniform_array(start=algo_23_equal_fps_point, stop=max_calculation_num, num=10).tolist()
+
+    calculation_nums = calculation_nums_1 + calculation_nums_2 + calculation_nums_3
+
+    print("\n开始进行Chamfer算法性能对比测试...")
+    algo_fps_map_dict = SpeedManager.getAlgoSimpleFPSMapDict(calculation_nums)
+
+    print("\n生成可视化结果...")
+    renderAlgoFPSMapDictCurve(algo_fps_map_dict)
     return True

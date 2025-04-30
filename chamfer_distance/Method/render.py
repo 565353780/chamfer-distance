@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
 from matplotlib.patches import Patch
 
 from chamfer_distance.Method.map import createDataMapDict, mapData
@@ -124,6 +125,35 @@ def renderBestAlgoFPSMapDict(algo_fps_map_dict: dict, free_width: float = 0.5) -
 
     ax.legend(handles=legend_patches, loc='upper right')
 
+    plt.tight_layout()
+    plt.show()
+    return True
+
+def renderAlgoFPSMapDictCurve(algo_fps_map_dict: dict) -> bool:
+    plt.figure(figsize=(10, 6))
+
+    cmap = get_cmap("tab10")
+
+    algo_idx = 0
+    for algo_name, algo_fps_map in algo_fps_map_dict.items():
+        x, y, fps = algo_fps_map.toXYFPS()
+        xy = x * y
+
+        xy_map = createDataMapDict(xy)
+
+        mapped_xy = mapData(xy, xy_map)
+
+        color = cmap(algo_idx)
+
+        plt.plot(mapped_xy, fps, label=algo_name, color=color)
+
+        algo_idx += 1
+
+    plt.xlabel('XY')
+    plt.ylabel('FPS')
+    plt.title('FPS Curve')
+    plt.legend(loc="best")
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
     return True
