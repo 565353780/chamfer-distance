@@ -1,4 +1,5 @@
 #include "chamfer_cuda_kd.h"
+#include "chamfer_backward.h"
 #include "chamfer_cpu.h"
 #include "chamfer_triton.h"
 
@@ -45,26 +46,17 @@ chamfer_KD_3DFunction::backward(torch::autograd::AutogradContext *ctx,
 
   const torch::Tensor &xyz1 = dists_with_idxs[0];
   const torch::Tensor &xyz2 = dists_with_idxs[1];
-  const torch::Tensor &idxs1 = dists_with_idxs[2];
-  const torch::Tensor &idxs2 = dists_with_idxs[3];
+  const torch::Tensor &idx1 = dists_with_idxs[2];
+  const torch::Tensor &idx2 = dists_with_idxs[3];
 
   const torch::Tensor &graddist1 = grad_outputs[0];
   const torch::Tensor &graddist2 = grad_outputs[1];
 
-  const torch::Tensor valid_idxs1 =
-      idxs1.unsqueeze(-1).expand({-1, -1, 3}).toType(torch::kInt64);
-  const torch::Tensor valid_idxs2 =
-      idxs2.unsqueeze(-1).expand({-1, -1, 3}).toType(torch::kInt64);
+  torch::Tensor gradxyz1 = torch::zeros_like(xyz1);
+  torch::Tensor gradxyz2 = torch::zeros_like(xyz2);
 
-  const torch::Tensor d_dist1 = graddist1.unsqueeze(-1) * 2 *
-                                (xyz1 - torch::gather(xyz2, 1, valid_idxs1));
-  const torch::Tensor d_dist2 = graddist2.unsqueeze(-1) * 2 *
-                                (xyz2 - torch::gather(xyz1, 1, valid_idxs2));
-
-  const torch::Tensor gradxyz1 =
-      torch::scatter_add(d_dist1, 1, valid_idxs2, -d_dist2);
-  const torch::Tensor gradxyz2 =
-      torch::scatter_add(d_dist2, 1, valid_idxs1, -d_dist1);
+  chamfer_torch_backward(xyz1, xyz2, graddist1, graddist2, idx1, idx2, gradxyz1,
+                         gradxyz2);
 
   std::vector<torch::Tensor> grads({gradxyz1, gradxyz2});
 

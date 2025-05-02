@@ -1,4 +1,5 @@
 #include "chamfer_cuda.h"
+#include "chamfer_backward.h"
 #include "chamfer_cpu.h"
 
 #ifdef USE_CUDA
@@ -43,9 +44,6 @@ chamfer_3DFunction::backward(torch::autograd::AutogradContext *ctx,
 
   torch::Tensor &graddist1 = grad_outputs[0];
   torch::Tensor &graddist2 = grad_outputs[1];
-
-  torch::Tensor contiguous_graddist1 = graddist1.contiguous();
-  torch::Tensor contiguous_graddist2 = graddist2.contiguous();
 
   torch::Tensor gradxyz1 = torch::zeros_like(xyz1);
   torch::Tensor gradxyz2 = torch::zeros_like(xyz2);

@@ -1,3 +1,5 @@
+#include "chamfer_backward.h"
+#include "chamfer_cuda.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -194,18 +196,29 @@ int chamfer_cuda_backward(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
   // cudaMemset(grad_xyz1,0,b*n*3*4);
   // cudaMemset(grad_xyz2,0,b*m*3*4);
 
-  const auto batch_size = xyz1.size(0);
-  const auto n = xyz1.size(1); // num_points point cloud A
-  const auto m = xyz2.size(1); // num_points point cloud B
+  torch::Tensor contiguous_xyz1 = xyz1.contiguous();
+  torch::Tensor contiguous_xyz2 = xyz2.contiguous();
+  torch::Tensor contiguous_idx1 = idx1.contiguous();
+  torch::Tensor contiguous_idx2 = idx2.contiguous();
+  torch::Tensor contiguous_gradxyz1 = gradxyz1.contiguous();
+  torch::Tensor contiguous_gradxyz2 = gradxyz2.contiguous();
+  torch::Tensor contiguous_graddist1 = graddist1.contiguous();
+  torch::Tensor contiguous_graddist2 = graddist2.contiguous();
+
+  const auto batch_size = contiguous_xyz1.size(0);
+  const auto n = contiguous_xyz1.size(1); // num_points point cloud A
+  const auto m = contiguous_xyz2.size(1); // num_points point cloud B
 
   NmDistanceGradKernel<<<dim3(1, 16, 1), 256>>>(
-      batch_size, n, xyz1.data_ptr<float>(), m, xyz2.data_ptr<float>(),
-      graddist1.data_ptr<float>(), idx1.data_ptr<int>(),
-      gradxyz1.data_ptr<float>(), gradxyz2.data_ptr<float>());
+      batch_size, n, contiguous_xyz1.data_ptr<float>(), m,
+      contiguous_xyz2.data_ptr<float>(), contiguous_graddist1.data_ptr<float>(),
+      contiguous_idx1.data_ptr<int>(), contiguous_gradxyz1.data_ptr<float>(),
+      contiguous_gradxyz2.data_ptr<float>());
   NmDistanceGradKernel<<<dim3(1, 16, 1), 256>>>(
-      batch_size, m, xyz2.data_ptr<float>(), n, xyz1.data_ptr<float>(),
-      graddist2.data_ptr<float>(), idx2.data_ptr<int>(),
-      gradxyz2.data_ptr<float>(), gradxyz1.data_ptr<float>());
+      batch_size, m, contiguous_xyz2.data_ptr<float>(), n,
+      contiguous_xyz1.data_ptr<float>(), contiguous_graddist2.data_ptr<float>(),
+      contiguous_idx2.data_ptr<int>(), contiguous_gradxyz2.data_ptr<float>(),
+      contiguous_gradxyz1.data_ptr<float>());
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

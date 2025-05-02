@@ -39,6 +39,14 @@ class ChamferDistances(object):
         return dists1, dists2, idxs1, idxs2
 
     @staticmethod
+    def faiss(
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        dists1, dists2, idxs1, idxs2 = chamfer_cpp.chamfer_faiss(xyz1, xyz2)
+        return dists1, dists2, idxs1, idxs2
+
+    @staticmethod
     def cuda(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
@@ -69,6 +77,7 @@ class ChamferDistances(object):
         }
 
         gpu_algo_dict = {
+            'faiss': ChamferDistances.faiss,
             'cuda': ChamferDistances.cuda,
             'triton': ChamferDistances.triton,
             'cuda_kd': ChamferDistances.cuda_kd,

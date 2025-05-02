@@ -7,12 +7,6 @@ int chamfer_cuda_forward(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
                          torch::Tensor &dist1, torch::Tensor &dist2,
                          torch::Tensor &idx1, torch::Tensor &idx2);
 
-int chamfer_cuda_backward(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
-                          const torch::Tensor &graddist1,
-                          const torch::Tensor &graddist2,
-                          const torch::Tensor &idx1, const torch::Tensor &idx2,
-                          torch::Tensor &gradxyz1, torch::Tensor &gradxyz2);
-
 class chamfer_3DFunction
     : public torch::autograd::Function<chamfer_3DFunction> {
 public:

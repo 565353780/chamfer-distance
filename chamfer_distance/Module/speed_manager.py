@@ -240,6 +240,9 @@ class SpeedManager(object):
         window_size: int = 10,
         rel_std_threshold: float = 0.01,
     ) -> dict:
+        point_cloud_sizes_m = [int(data) for data in point_cloud_sizes_m]
+        point_cloud_sizes_n = [int(data) for data in point_cloud_sizes_n]
+
         algo_name_list = ChamferDistances.getAlgoNameList()
 
         algo_fps_map_dict = {}
