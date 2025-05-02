@@ -1,5 +1,6 @@
 import torch
 from typing import Union, Tuple
+from kaolin.metrics.pointcloud import sided_distance
 
 import chamfer_cpp
 
@@ -36,6 +37,15 @@ class ChamferDistances(object):
         if xyz2.device != 'cpu':
             xyz2 = xyz2.cpu()
         dists1, dists2, idxs1, idxs2 = chamfer_cpp.chamfer_cpu(xyz1, xyz2)
+        return dists1, dists2, idxs1, idxs2
+
+    @staticmethod
+    def kaolin(
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        dists1, idxs1 = sided_distance(xyz1, xyz2)
+        dists2, idxs2 = sided_distance(xyz2, xyz1)
         return dists1, dists2, idxs1, idxs2
 
     @staticmethod
@@ -77,6 +87,7 @@ class ChamferDistances(object):
         }
 
         gpu_algo_dict = {
+            'kaolin': ChamferDistances.kaolin,
             'faiss': ChamferDistances.faiss,
             'cuda': ChamferDistances.cuda,
             'triton': ChamferDistances.triton,
