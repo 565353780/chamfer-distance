@@ -104,6 +104,12 @@ std::vector<torch::Tensor> KDQueryClosest(cudaStream_t stream,
                                  d_queries, numQueries, d_bounds, d_input,
                                  numInput);
   CUKD_CUDA_SYNC_CHECK();
+  
+  // Free allocated GPU memory to prevent memory leaks
+  CUKD_CUDA_CHECK(cudaFreeAsync(d_input, stream));
+  CUKD_CUDA_CHECK(cudaFreeAsync(d_bounds, stream));
+  CUKD_CUDA_SYNC_CHECK();
+  
   return {dists, idxs};
 }
 
