@@ -23,16 +23,12 @@ def batched_pairwise_dist(x, y):
     return P
 
 
-def chamfer_cpu(a, b):
+def chamfer_torch(a, b):
     P = batched_pairwise_dist(a, b)
 
     dists1, idxs1 = torch.min(P, 2)
     dists2, idxs2 = torch.min(P, 1)
 
-    idxs1 = idxs1.int()
-    idxs2 = idxs2.int()
-
-    # 处理可能的NaN值
     valid_dists1 = to_valid_tensor(dists1)
     valid_dists2 = to_valid_tensor(dists2)
 

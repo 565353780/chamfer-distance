@@ -3,36 +3,11 @@ from typing import Tuple
 
 import chamfer_cpp
 
-
-def sided_forward_cuda(
-    xyz1: torch.Tensor,
-    xyz2: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    batch_size, n = xyz1.shape[0], xyz1.shape[1]
-
-    dist1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=xyz1.dtype)
-    idx1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=torch.int32)
-
-    chamfer_cpp.sided_forward_cuda(xyz1, xyz2, dist1, idx1)
-
-    return dist1, idx1
+from chamfer_distance.Method.chamfer_triton import sided_triton
 
 
-def sided_forward_cukd(
-    xyz1: torch.Tensor,
-    xyz2: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    batch_size, n = xyz1.shape[0], xyz1.shape[1]
-
-    dist1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=xyz1.dtype)
-    idx1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=torch.int64)
-
-    chamfer_cpp.sided_forward_cukd(xyz1, xyz2, dist1, idx1)
-
-    return dist1, idx1
-
-
-def sided_forward_faiss(
+def sided_forward_func(
+    name: str,
     xyz1: torch.Tensor,
     xyz2: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -41,6 +16,18 @@ def sided_forward_faiss(
     dist1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=xyz1.dtype)
     idx1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=torch.int64)
 
-    chamfer_cpp.sided_forward_faiss(xyz1, xyz2, dist1, idx1)
+    if name == "triton":
+        dist1, idx1 = sided_triton(xyz1, xyz2)
+    elif name == "cuda":
+        chamfer_cpp.sided_forward_cuda(xyz1, xyz2, dist1, idx1)
+    elif name == "cukd":
+        chamfer_cpp.sided_forward_cukd(xyz1, xyz2, dist1, idx1)
+    elif name == "faiss":
+        chamfer_cpp.sided_forward_faiss(xyz1, xyz2, dist1, idx1)
+    else:
+        print("[ERROR][forwards::sided_forward_func]")
+        print("\t func not found!")
+        print("\t name:", name)
+        exit()
 
     return dist1, idx1
