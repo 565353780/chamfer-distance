@@ -7,14 +7,14 @@ void sided_forward_cukd(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
   std::vector<torch::Tensor> dist1_vec, idx1_vec;
 
   for (int i = 0; i < xyz1.size(0); ++i) {
-    std::vector<torch::Tensor> result1 =
+    const std::vector<torch::Tensor> result1 =
         kd_closest_query_cuda(xyz1[i], xyz2[i]);
 
     dist1_vec.emplace_back(result1[0]);
     idx1_vec.emplace_back(result1[1]);
   }
 
-  dist1 = torch::vstack(dist1_vec);
-  idx1 = torch::vstack(idx1_vec);
+  dist1.copy_(torch::vstack(dist1_vec));
+  idx1.copy_(torch::vstack(idx1_vec));
 }
 #endif
