@@ -13,7 +13,8 @@ PYBIND11_MODULE(chamfer_cpp, m) {
   m.def("sided_forward_cukd", &sided_forward_cukd,
         "sided_cukd.sided_forward_cukd");
 
-  m.def("sided_faiss", &sided_forward_faiss, "sided_faiss.sided_forward_faiss");
+  m.def("sided_forward_faiss", &sided_forward_faiss,
+        "sided_faiss.sided_forward_faiss");
 
   // 绑定FAISSSearcher类
   pybind11::class_<FAISSSearcher>(m, "FAISSSearcher")

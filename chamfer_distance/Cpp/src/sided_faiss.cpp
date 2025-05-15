@@ -64,19 +64,15 @@ std::vector<torch::Tensor> FAISSSearcher::query(const torch::Tensor &points) {
   return {dist.squeeze(1), idx.squeeze(1)};
 }
 
-void sided_forward_faiss(const torch::Tensor &xyz1, // [B, N, 3]
-                         const torch::Tensor &xyz2, // [B, M, 3]
-                         torch::Tensor &dist1,      // [B, N]
-                         torch::Tensor &dist2,      // [B, M]
-                         torch::Tensor &idx1,       // [B, N]
-                         torch::Tensor &idx2) {     // [B, M]
+void sided_forward_faiss(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
+                         torch::Tensor &dist1, torch::Tensor &idx1) {
   TORCH_CHECK(xyz1.is_cuda() && xyz2.is_cuda(), "Input must be CUDA");
   TORCH_CHECK(xyz1.dim() == 3 && xyz2.dim() == 3, "Input must be [B, N, 3]");
 
   const int B = xyz1.size(0);
   const int N = xyz1.size(1);
   const int M = xyz2.size(1);
-  const int D = xyz1.size(2); // = 3
+  const int D = xyz1.size(2);
 
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
@@ -89,9 +85,7 @@ void sided_forward_faiss(const torch::Tensor &xyz1, // [B, N, 3]
   auto xyz2_flat = xyz2.reshape({B * M, D}).contiguous();
 
   auto dist1_flat = dist1.reshape({B * N}).contiguous();
-  auto dist2_flat = dist2.reshape({B * M}).contiguous();
   auto idx1_flat = idx1.reshape({B * N}).contiguous();
-  auto idx2_flat = idx2.reshape({B * M}).contiguous();
 
   // Build xyz2 as DB index
   faiss::gpu::GpuIndexFlatL2 index_x2(&res, D);
@@ -101,14 +95,5 @@ void sided_forward_faiss(const torch::Tensor &xyz1, // [B, N, 3]
   index_x2.search(
       B * N, xyz1_flat.data_ptr<float>(), 1, dist1_flat.data_ptr<float>(),
       reinterpret_cast<faiss::idx_t *>(idx1_flat.data_ptr<int64_t>()));
-
-  // Build xyz1 as DB index
-  faiss::gpu::GpuIndexFlatL2 index_x1(&res, D);
-  index_x1.add(B * N, xyz1_flat.data_ptr<float>());
-
-  // Query xyz2 against xyz1
-  index_x1.search(
-      B * M, xyz2_flat.data_ptr<float>(), 1, dist2_flat.data_ptr<float>(),
-      reinterpret_cast<faiss::idx_t *>(idx2_flat.data_ptr<int64_t>()));
 }
 #endif

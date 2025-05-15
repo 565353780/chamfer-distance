@@ -1,6 +1,6 @@
 import torch
 
-from chamfer_distance.Method.check import to_valid_tensor
+from chamfer_distance.Method.data import to_valid_tensor
 
 
 def batched_pairwise_dist(x, y):
