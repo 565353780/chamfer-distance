@@ -4,7 +4,10 @@ from platform import system
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDAExtension, CppExtension, BuildExtension
 
-from chamfer_distance.Method.setup import getCppStandard, getSupportedComputeCapabilities
+from chamfer_distance.Method.setup import (
+    getCppStandard,
+    getSupportedComputeCapabilities,
+)
 
 SYSTEM = system()
 
@@ -63,19 +66,21 @@ if len(compute_capabilities) > 0:
     chamfer_sources += glob.glob(chamfer_src_path + "*.cu")
 
     extra_compile_args = {
-        "cxx": chamfer_extra_compile_args + [
+        "cxx": chamfer_extra_compile_args
+        + [
             "-DUSE_CUDA",
             "-DTCNN_NO_NETWORKS",
             f"-DTCNN_MIN_GPU_ARCH={compute_capability}",
         ],
-        "nvcc": nvcc_flags + [
+        "nvcc": nvcc_flags
+        + [
             "-O3",
             "-Xfatbin",
             "-compress-all",
             "-DUSE_CUDA",
             "-DTCNN_NO_NETWORKS",
-            f"-DTCNN_MIN_GPU_ARCH={compute_capability}"
-        ]
+            f"-DTCNN_MIN_GPU_ARCH={compute_capability}",
+        ],
     }
 
     chamfer_module = CUDAExtension(
@@ -84,13 +89,13 @@ if len(compute_capabilities) > 0:
         include_dirs=chamfer_include_dirs,
         extra_compile_args=extra_compile_args,
         library_dirs=[
-                FAISS_LIB,
-            ],
+            FAISS_LIB,
+        ],
         libraries=[
             "cuda",
-            'faiss',
-            'cuvs',
-            'cudart',
+            "faiss",
+            "cuvs",
+            "cudart",
         ],
     )
 

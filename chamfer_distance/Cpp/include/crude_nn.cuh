@@ -189,10 +189,10 @@ torch::Tensor CrudeNN(cudaStream_t stream, const torch::Tensor &input,
           n_query, n_levels, offset_table, base_resolution,
           std::log2(per_level_scale), params.data_ptr<T>(), query_matrix.view(),
           Da.data_ptr<T>());
-  
+
   // 确保CUDA操作完成
-  TCNN_CUDA_CHECK_THROW(cudaStreamSynchronize(stream));
-  
+  cudaStreamSynchronize(stream);
+
   return Da;
 }
 #endif // CRUDE_NN_CUH

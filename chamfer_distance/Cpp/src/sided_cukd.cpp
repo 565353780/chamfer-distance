@@ -1,0 +1,23 @@
+#include "sided_cukd.h"
+#include "chamfer_triton.h"
+
+#ifdef USE_CUDA
+void sided_forward_cukd(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
+                        torch::Tensor &dist1, torch::Tensor &idx1) {
+  std::vector<torch::Tensor> dist1_vec, idx1_vec;
+
+  for (int i = 0; i < xyz1.size(0); ++i) {
+    std::vector<torch::Tensor> result1 =
+        kd_closest_query_cuda(xyz1[i], xyz2[i]);
+
+    const torch::Tensor &dist1 = result1[0];
+    const torch::Tensor &idx1 = result1[1];
+
+    dist1_vec.emplace_back(dist1);
+    idx1_vec.emplace_back(idx1);
+  }
+
+  dist1 = torch::vstack(dist1_vec);
+  idx1 = torch::vstack(idx1_vec);
+}
+#endif

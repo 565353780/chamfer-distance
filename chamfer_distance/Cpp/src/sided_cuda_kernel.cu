@@ -1,5 +1,3 @@
-#include "chamfer_backward.h"
-#include "chamfer_cuda.h"
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
@@ -132,99 +130,20 @@ __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
   }
 }
 
-__global__ void NmDistanceGradKernel(const int b, const int n,
-                                     const float *xyz1, const int m,
-                                     const float *xyz2, const float *grad_dist1,
-                                     const int *idx1, float *grad_xyz1,
-                                     float *grad_xyz2) {
-  for (int i = blockIdx.x; i < b; i += gridDim.x) {
-    for (int j = threadIdx.x + blockIdx.y * blockDim.x; j < n;
-         j += blockDim.x * gridDim.y) {
-      float x1 = xyz1[(i * n + j) * 3 + 0];
-      float y1 = xyz1[(i * n + j) * 3 + 1];
-      float z1 = xyz1[(i * n + j) * 3 + 2];
-      int j2 = idx1[i * n + j];
-      float x2 = xyz2[(i * m + j2) * 3 + 0];
-      float y2 = xyz2[(i * m + j2) * 3 + 1];
-      float z2 = xyz2[(i * m + j2) * 3 + 2];
-      float g = grad_dist1[i * n + j] * 2;
-      atomicAdd(&(grad_xyz1[(i * n + j) * 3 + 0]), g * (x1 - x2));
-      atomicAdd(&(grad_xyz1[(i * n + j) * 3 + 1]), g * (y1 - y2));
-      atomicAdd(&(grad_xyz1[(i * n + j) * 3 + 2]), g * (z1 - z2));
-      atomicAdd(&(grad_xyz2[(i * m + j2) * 3 + 0]), -(g * (x1 - x2)));
-      atomicAdd(&(grad_xyz2[(i * m + j2) * 3 + 1]), -(g * (y1 - y2)));
-      atomicAdd(&(grad_xyz2[(i * m + j2) * 3 + 2]), -(g * (z1 - z2)));
-    }
-  }
-}
-
-// int chamfer_cuda_forward(int b,int n,const float * xyz,int m,const float *
-// xyz2,float * result,int * result_i,float * result2,int * result2_i,
-// cudaStream_t stream){
-int chamfer_cuda_forward(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
-                         torch::Tensor &dist1, torch::Tensor &dist2,
-                         torch::Tensor &idx1, torch::Tensor &idx2) {
+void sided_forward_cuda(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
+                        torch::Tensor &dist1, torch::Tensor &idx1) {
 
   const auto batch_size = xyz1.size(0);
-  const auto n = xyz1.size(1); // num_points point cloud A
-  const auto m = xyz2.size(1); // num_points point cloud B
+  const auto n = xyz1.size(1);
+  const auto m = xyz2.size(1);
 
   NmDistanceKernel<<<dim3(32, 16, 1), 512>>>(
       batch_size, n, xyz1.data_ptr<float>(), m, xyz2.data_ptr<float>(),
       dist1.data_ptr<float>(), idx1.data_ptr<int>());
-  NmDistanceKernel<<<dim3(32, 16, 1), 512>>>(
-      batch_size, m, xyz2.data_ptr<float>(), n, xyz1.data_ptr<float>(),
-      dist2.data_ptr<float>(), idx2.data_ptr<int>());
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
     printf("error in nnd updateOutput: %s\n", cudaGetErrorString(err));
     // THError("aborting");
-    return 0;
   }
-  return 1;
-}
-
-// int chamfer_cuda_backward(int b,int n,const float * xyz1,int m,const float *
-// xyz2,const float * grad_dist1,const int * idx1,const float * grad_dist2,const
-// int * idx2,float * grad_xyz1,float * grad_xyz2, cudaStream_t stream){
-int chamfer_cuda_backward(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
-                          const torch::Tensor &graddist1,
-                          const torch::Tensor &graddist2,
-                          const torch::Tensor &idx1, const torch::Tensor &idx2,
-                          torch::Tensor &gradxyz1, torch::Tensor &gradxyz2) {
-  // cudaMemset(grad_xyz1,0,b*n*3*4);
-  // cudaMemset(grad_xyz2,0,b*m*3*4);
-
-  torch::Tensor contiguous_xyz1 = xyz1.contiguous();
-  torch::Tensor contiguous_xyz2 = xyz2.contiguous();
-  torch::Tensor contiguous_idx1 = idx1.contiguous();
-  torch::Tensor contiguous_idx2 = idx2.contiguous();
-  torch::Tensor contiguous_gradxyz1 = gradxyz1.contiguous();
-  torch::Tensor contiguous_gradxyz2 = gradxyz2.contiguous();
-  torch::Tensor contiguous_graddist1 = graddist1.contiguous();
-  torch::Tensor contiguous_graddist2 = graddist2.contiguous();
-
-  const auto batch_size = contiguous_xyz1.size(0);
-  const auto n = contiguous_xyz1.size(1); // num_points point cloud A
-  const auto m = contiguous_xyz2.size(1); // num_points point cloud B
-
-  NmDistanceGradKernel<<<dim3(1, 16, 1), 256>>>(
-      batch_size, n, contiguous_xyz1.data_ptr<float>(), m,
-      contiguous_xyz2.data_ptr<float>(), contiguous_graddist1.data_ptr<float>(),
-      contiguous_idx1.data_ptr<int>(), contiguous_gradxyz1.data_ptr<float>(),
-      contiguous_gradxyz2.data_ptr<float>());
-  NmDistanceGradKernel<<<dim3(1, 16, 1), 256>>>(
-      batch_size, m, contiguous_xyz2.data_ptr<float>(), n,
-      contiguous_xyz1.data_ptr<float>(), contiguous_graddist2.data_ptr<float>(),
-      contiguous_idx2.data_ptr<int>(), contiguous_gradxyz2.data_ptr<float>(),
-      contiguous_gradxyz1.data_ptr<float>());
-
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    printf("error in nnd get grad: %s\n", cudaGetErrorString(err));
-    // THError("aborting");
-    return 0;
-  }
-  return 1;
 }

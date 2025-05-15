@@ -1,23 +1,23 @@
-#include "chamfer_cpu.h"
-#include "chamfer_cuda.h"
-#include "chamfer_cuda_kd.h"
-#include "chamfer_faiss.h"
-#include "chamfer_triton.h"
+#include "sided_cuda.h"
+#include "sided_cukd.h"
+#include "sided_faiss.h"
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 PYBIND11_MODULE(chamfer_cpp, m) {
   m.doc() = "pybind11 chamfer cpp plugin";
 
-  m.def("chamfer_cpu", &chamfer_cpu, "chamfer_cpu.chamfer_cpu");
+  m.def("sided_forward_cuda", &sided_forward_cuda,
+        "sided_cuda.sided_forward_cuda");
 
-  m.def("chamfer_cuda", &chamfer_cuda, "chamfer_cuda.chamfer_cuda");
+  m.def("sided_forward_cukd", &sided_forward_cukd,
+        "sided_cukd.sided_forward_cukd");
 
-  m.def("chamfer_cuda_kd", &chamfer_cuda_kd, "chamfer_cuda_kd.chamfer_cuda_kd");
+  m.def("sided_faiss", &sided_forward_faiss, "sided_faiss.sided_forward_faiss");
 
-  m.def("kd_closest_query_cuda", &kd_closest_query_cuda,
-        "chamfer_triton.kd_closest_query_cuda");
-
-  m.def("chamfer_faiss", &chamfer_faiss, "chamfer_faiss.chamfer_faiss");
-
-  m.def("crude_nn_cuda", &crude_nn_cuda, "chamfer_triton.crude_nn_cuda");
+  // 绑定FAISSSearcher类
+  pybind11::class_<FAISSSearcher>(m, "FAISSSearcher")
+      .def(pybind11::init<>())
+      .def("addPoints", &FAISSSearcher::addPoints, "添加点云数据到索引")
+      .def("query", &FAISSSearcher::query, "查询最近邻点");
 }
