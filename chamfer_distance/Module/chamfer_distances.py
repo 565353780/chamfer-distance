@@ -86,7 +86,6 @@ class ChamferDistances(object):
         gpu_algo_dict = {
             "triton": ChamferDistances.triton,
             "cuda": ChamferDistances.cuda,
-            "cukd": ChamferDistances.cukd,
             "kaolin": ChamferDistances.kaolin,
             "faiss": ChamferDistances.faiss,
         }

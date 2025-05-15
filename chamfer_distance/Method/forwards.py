@@ -14,7 +14,7 @@ def sided_forward_func(
     batch_size, n = xyz1.shape[:2]
 
     dist1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=xyz1.dtype)
-    idx1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=torch.int64)
+    idx1 = torch.zeros((batch_size, n), device=xyz1.device, dtype=torch.int32)
 
     if name == "triton":
         dist1, idx1 = sided_triton(xyz1, xyz2)
@@ -23,7 +23,9 @@ def sided_forward_func(
     elif name == "cukd":
         chamfer_cpp.sided_forward_cukd(xyz1, xyz2, dist1, idx1)
     elif name == "faiss":
+        idx1 = idx1.type(torch.int64)
         chamfer_cpp.sided_forward_faiss(xyz1, xyz2, dist1, idx1)
+        idx1 = idx1.type(torch.int32)
     else:
         print("[ERROR][forwards::sided_forward_func]")
         print("\t func not found!")

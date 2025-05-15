@@ -28,8 +28,12 @@ def checkResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
     d_xyz21 = gradient(loss_2, xyz1)
     d_xyz22 = gradient(loss_2, xyz2)
 
-    assert torch.allclose(idx21, idx11, atol=1e-5), torch.max(torch.abs(idx21 - idx11))
-    assert torch.allclose(idx22, idx12, atol=1e-5), torch.max(torch.abs(idx22 - idx12))
+    assert torch.all(idx21 == idx11), print(
+        idx11, "\n", idx21, "\n", torch.where(idx21 != idx11), "\n", idx11.shape
+    )
+    assert torch.all(idx22 == idx12), print(
+        idx12, "\n", idx22, "\n", torch.where(idx22 != idx12), "\n", idx12.shape
+    )
 
     assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
         torch.abs(d_xyz21 - d_xyz11)
@@ -44,8 +48,8 @@ def checkResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
     dist1, dist2, idx1, idx2 = func1(xyz1, xyz2)
     dist1_ref, dist2_ref, idx1_ref, idx2_ref = chamfer_torch(xyz1, xyz2)
 
-    assert torch.allclose(dist1, dist1_ref, atol=1e-5)
-    assert torch.allclose(dist2, dist2_ref, atol=1e-5)
     assert torch.all(idx1 == idx1_ref)
     assert torch.all(idx2 == idx2_ref)
+    assert torch.allclose(dist1, dist1_ref, atol=1e-5)
+    assert torch.allclose(dist2, dist2_ref, atol=1e-5)
     return True

@@ -5,7 +5,7 @@
 
 __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
                                  const int m, const float *xyz2, float *result,
-                                 std::int64_t *result_i) {
+                                 int *result_i) {
   const int batch = 512;
   __shared__ float buf[batch * 3];
   for (int i = blockIdx.x; i < b; i += gridDim.x) {
@@ -139,7 +139,7 @@ void sided_forward_cuda(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
 
   NmDistanceKernel<<<dim3(32, 16, 1), 512>>>(
       batch_size, n, xyz1.data_ptr<float>(), m, xyz2.data_ptr<float>(),
-      dist1.data_ptr<float>(), idx1.data_ptr<std::int64_t>());
+      dist1.data_ptr<float>(), idx1.data_ptr<int>());
 
   cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {

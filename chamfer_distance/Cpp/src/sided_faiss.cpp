@@ -58,7 +58,7 @@ std::vector<torch::Tensor> FAISSSearcher::query(const torch::Tensor &points) {
   // 执行查询
   index->search(M, points_contiguous.data_ptr<float>(), 1,
                 dist.data_ptr<float>(),
-                reinterpret_cast<faiss::idx_t *>(idx.data_ptr<int64_t>()));
+                reinterpret_cast<faiss::idx_t *>(idx.data_ptr<std::int64_t>()));
 
   // 返回距离和索引
   return {dist.squeeze(1), idx.squeeze(1)};
@@ -94,6 +94,9 @@ void sided_forward_faiss(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
   // Query xyz1 against xyz2
   index_x2.search(
       B * N, xyz1_flat.data_ptr<float>(), 1, dist1_flat.data_ptr<float>(),
-      reinterpret_cast<faiss::idx_t *>(idx1_flat.data_ptr<int64_t>()));
+      reinterpret_cast<faiss::idx_t *>(idx1_flat.data_ptr<std::int64_t>()));
+
+  dist1 = dist1_flat.reshape({B, N});
+  idx1 = idx1_flat.reshape({B, N});
 }
 #endif

@@ -48,4 +48,4 @@ def nm_dist(xyz1: torch.Tensor, xyz2: torch.Tensor):
         **configs,
     )
 
-    return dists, indices.type(torch.int64)
+    return dists, indices
