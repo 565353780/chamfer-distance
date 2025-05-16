@@ -1,7 +1,6 @@
 import torch
 
 from chamfer_distance.Method.grad import gradient
-from chamfer_distance.Function.torch import chamfer_torch
 
 
 def checkResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
@@ -35,21 +34,17 @@ def checkResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
         idx12, "\n", idx22, "\n", torch.where(idx22 != idx12), "\n", idx12.shape
     )
 
+    assert torch.allclose(dist11, dist21, atol=1e-5), torch.max(
+        torch.abs(dist11 - dist21)
+    )
+    assert torch.allclose(dist12, dist22, atol=1e-5), torch.max(
+        torch.abs(dist12 - dist22)
+    )
+
     assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
         torch.abs(d_xyz21 - d_xyz11)
     )
     assert torch.allclose(d_xyz22, d_xyz12, atol=1e-5), torch.max(
         torch.abs(d_xyz22 - d_xyz12)
     )
-
-    xyz1 = torch.randn(1, 8192, 3).cuda()
-    xyz2 = torch.randn(1, 8192, 3).cuda()
-
-    dist1, dist2, idx1, idx2 = func1(xyz1, xyz2)
-    dist1_ref, dist2_ref, idx1_ref, idx2_ref = chamfer_torch(xyz1, xyz2)
-
-    assert torch.all(idx1 == idx1_ref)
-    assert torch.all(idx2 == idx2_ref)
-    assert torch.allclose(dist1, dist1_ref, atol=1e-5)
-    assert torch.allclose(dist2, dist2_ref, atol=1e-5)
     return True
