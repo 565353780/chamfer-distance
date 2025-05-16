@@ -12,7 +12,7 @@ from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.timer import Timer
 
 
-class SpeedManager(object):
+class ChamferSpeedManager(object):
     def __init__(self) -> None:
         return
 
@@ -28,18 +28,18 @@ class SpeedManager(object):
     ) -> float:
         algo_func = ChamferDistances.namedAlgo(algo_name)
         if algo_func is None:
-            print('[ERROR][SpeedManager::getAlgoFPS]')
-            print('\t namedAlgo failed!')
+            print("[ERROR][ChamferSpeedManager::getAlgoFPS]")
+            print("\t namedAlgo failed!")
             return 0.0
 
-        if algo_name == 'cpu':
-            if xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1] > 40000 ** 2:
-                print('[WARN][SpeedManager::getAlgoFPS]')
-                print('\t data too large for cpu calculation! will return fps = 0.0!')
+        if algo_name == "cpu":
+            if xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1] > 40000**2:
+                print("[WARN][ChamferSpeedManager::getAlgoFPS]")
+                print("\t data too large for cpu calculation! will return fps = 0.0!")
                 return 0.0
 
-        print('[INFO][SpeedManager]')
-        print('\t start test speed of [' + algo_name + ']...', end='')
+        print("[INFO][ChamferSpeedManager]")
+        print("\t start test speed of [" + algo_name + "]...", end="")
         fps_list = []
         window = []
 
@@ -47,7 +47,10 @@ class SpeedManager(object):
         for i in range(100000000):
             start = time()
 
-            dist1, dist2, = algo_func(xyz1, xyz2)[:2]
+            (
+                dist1,
+                dist2,
+            ) = algo_func(xyz1, xyz2)[:2]
             if isinstance(dist1, torch.Tensor):
                 mean = torch.mean(dist1) + torch.mean(dist2)
             else:
@@ -78,7 +81,7 @@ class SpeedManager(object):
 
         fps = float(np.mean(window))
 
-        print('\t fps =', fps)
+        print("\t fps =", fps)
 
         return fps
 
@@ -93,10 +96,24 @@ class SpeedManager(object):
         window_size: int = 10,
         rel_std_threshold: float = 0.01,
     ) -> float:
-        fps_1 = SpeedManager.getAlgoFPS(
-            algo_name_1, xyz1, xyz2, max_test_second, warmup, window_size, rel_std_threshold)
-        fps_2 = SpeedManager.getAlgoFPS(
-            algo_name_2, xyz1, xyz2, max_test_second, warmup, window_size, rel_std_threshold)
+        fps_1 = ChamferSpeedManager.getAlgoFPS(
+            algo_name_1,
+            xyz1,
+            xyz2,
+            max_test_second,
+            warmup,
+            window_size,
+            rel_std_threshold,
+        )
+        fps_2 = ChamferSpeedManager.getAlgoFPS(
+            algo_name_2,
+            xyz1,
+            xyz2,
+            max_test_second,
+            warmup,
+            window_size,
+            rel_std_threshold,
+        )
         return fps_1 - fps_2
 
     @staticmethod
@@ -117,10 +134,15 @@ class SpeedManager(object):
         xyz1.requires_grad_(True)
         xyz2.requires_grad_(True)
 
-        return SpeedManager.getAlgosFPSDiff(
-            algo_name_1, algo_name_2,
-            xyz1, xyz2,
-            max_test_second, warmup, window_size, rel_std_threshold,
+        return ChamferSpeedManager.getAlgosFPSDiff(
+            algo_name_1,
+            algo_name_2,
+            xyz1,
+            xyz2,
+            max_test_second,
+            warmup,
+            window_size,
+            rel_std_threshold,
         )
 
     @staticmethod
@@ -143,7 +165,7 @@ class SpeedManager(object):
         algo_name_list = ChamferDistances.getAlgoNameList()
 
         for algo_name in algo_name_list:
-            algo_fps = SpeedManager.getAlgoFPS(
+            algo_fps = ChamferSpeedManager.getAlgoFPS(
                 algo_name,
                 xyz1,
                 xyz2,
@@ -177,13 +199,13 @@ class SpeedManager(object):
             algo_fps_map_dict[algo_name] = FPSMap()
 
         for m, n in xy_pairs:
-            print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+            print("[INFO][ChamferSpeedManager::getAlgoFPSMapDict]")
             print(f"\t test point cloud sizes : P={m}, Q={n}")
 
             xyz1_shape = [1, m, 3]
             xyz2_shape = [1, n, 3]
 
-            algo_fps_dict = SpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
+            algo_fps_dict = ChamferSpeedManager.getAlgoFPSDict(xyz1_shape, xyz2_shape)
 
             for algo_name, algo_fps in algo_fps_dict.items():
                 algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps, False)
@@ -192,7 +214,7 @@ class SpeedManager(object):
 
     @staticmethod
     def getAlgoBalanceFPSMapDict(
-        calculation_num: int = 10000 ** 2,
+        calculation_num: int = 10000**2,
         split_num: int = 10,
         max_unbalance_weight: float = 9.0,
         max_test_second: float = 1.0,
@@ -200,7 +222,9 @@ class SpeedManager(object):
         window_size: int = 10,
         rel_std_threshold: float = 0.01,
     ) -> dict:
-        ratios = np.geomspace(1.0 / max_unbalance_weight, max_unbalance_weight, num=split_num)
+        ratios = np.geomspace(
+            1.0 / max_unbalance_weight, max_unbalance_weight, num=split_num
+        )
         xy_pairs = []
 
         for r in ratios:
@@ -215,15 +239,19 @@ class SpeedManager(object):
             algo_fps_map_dict[algo_name] = FPSMap()
 
         for m, n in xy_pairs:
-            print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+            print("[INFO][ChamferSpeedManager::getAlgoFPSMapDict]")
             print(f"\t test point cloud sizes : P={m}, Q={n}")
 
             xyz1_shape = [1, m, 3]
             xyz2_shape = [1, n, 3]
 
-            algo_fps_dict = SpeedManager.getAlgoFPSDict(
-                xyz1_shape, xyz2_shape,
-                max_test_second, warmup, window_size, rel_std_threshold,
+            algo_fps_dict = ChamferSpeedManager.getAlgoFPSDict(
+                xyz1_shape,
+                xyz2_shape,
+                max_test_second,
+                warmup,
+                window_size,
+                rel_std_threshold,
             )
 
             for algo_name, algo_fps in algo_fps_dict.items():
@@ -254,15 +282,19 @@ class SpeedManager(object):
                 if m > n:
                     continue
 
-                print('[INFO][SpeedManager::getAlgoFPSMapDict]')
+                print("[INFO][ChamferSpeedManager::getAlgoFPSMapDict]")
                 print(f"\t test point cloud sizes : P={m}, Q={n}")
 
                 xyz1_shape = [1, m, 3]
                 xyz2_shape = [1, n, 3]
 
-                algo_fps_dict = SpeedManager.getAlgoFPSDict(
-                    xyz1_shape, xyz2_shape,
-                    max_test_second, warmup, window_size, rel_std_threshold,
+                algo_fps_dict = ChamferSpeedManager.getAlgoFPSDict(
+                    xyz1_shape,
+                    xyz2_shape,
+                    max_test_second,
+                    warmup,
+                    window_size,
+                    rel_std_threshold,
                 )
 
                 for algo_name, algo_fps in algo_fps_dict.items():
@@ -282,25 +314,34 @@ class SpeedManager(object):
         rel_std_threshold: float = 0.01,
     ) -> Union[float, None]:
         if not ChamferDistances.isAlgoNameValid(algo_name_1):
-            print('[ERROR][SpeedManager::getAlgosEqualFPSPoint]')
-            print('\t namedAlgo failed for algo name 1!')
+            print("[ERROR][ChamferSpeedManager::getAlgosEqualFPSPoint]")
+            print("\t namedAlgo failed for algo name 1!")
             return None
         if not ChamferDistances.isAlgoNameValid(algo_name_2):
-            print('[ERROR][SpeedManager::getAlgosEqualFPSPoint]')
-            print('\t namedAlgo failed for algo name 2!')
+            print("[ERROR][ChamferSpeedManager::getAlgosEqualFPSPoint]")
+            print("\t namedAlgo failed for algo name 2!")
             return None
 
         def fpsDiff(calculation_num: float) -> float:
-            fps_diff = SpeedManager.getAlgosFPSDiffSimple(
-                algo_name_1, algo_name_2, calculation_num,
-                max_test_second, warmup, window_size, rel_std_threshold,
+            fps_diff = ChamferSpeedManager.getAlgosFPSDiffSimple(
+                algo_name_1,
+                algo_name_2,
+                calculation_num,
+                max_test_second,
+                warmup,
+                window_size,
+                rel_std_threshold,
             )
 
             return fps_diff
 
         equal_fps_point = brentq(
-            fpsDiff, min_calculation_num, max_calculation_num,
-            xtol=1.0, rtol=1e-3, maxiter=100,
+            fpsDiff,
+            min_calculation_num,
+            max_calculation_num,
+            xtol=1.0,
+            rtol=1e-3,
+            maxiter=100,
         )
 
         return equal_fps_point
@@ -312,13 +353,13 @@ class SpeedManager(object):
     ) -> bool:
         createFileFolder(save_equal_fps_point_txt_file_path)
 
-        with open(save_equal_fps_point_txt_file_path, 'w') as f:
+        with open(save_equal_fps_point_txt_file_path, "w") as f:
             for algo_name, algo_interval in algo_interval_dict.items():
                 f.write(algo_name)
-                f.write('|')
+                f.write("|")
                 f.write(str(algo_interval[0]))
-                f.write('|')
+                f.write("|")
                 f.write(str(algo_interval[1]))
-                f.write('\n')
+                f.write("\n")
 
         return True
