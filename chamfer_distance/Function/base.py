@@ -8,7 +8,7 @@ class BaseSidedFunction(torch.autograd.Function):
     def backward(ctx, grad_dist1, grad_idx1):
         xyz1, xyz2, idx1 = ctx.saved_tensors
         grad_xyz1 = sided_backward(xyz1, xyz2, idx1, grad_dist1)
-        return grad_xyz1
+        return grad_xyz1, None
 
 
 class BaseChamferFunction(torch.autograd.Function):

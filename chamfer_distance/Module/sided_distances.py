@@ -3,96 +3,95 @@ from typing import Union, Tuple
 from kaolin.metrics.pointcloud import sided_distance
 
 from chamfer_distance.Config.path import ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
-from chamfer_distance.Method.check import checkChamferResults
+from chamfer_distance.Method.check import checkSidedResults
 from chamfer_distance.Method.io import loadAlgoIntervalDict
-from chamfer_distance.Function.torch import chamfer_torch
-from chamfer_distance.Function.triton import ChamferTriton
-from chamfer_distance.Function.cuda import ChamferCUDA
-from chamfer_distance.Function.cukd import ChamferCUKD
-from chamfer_distance.Function.faiss import ChamferFAISS
+from chamfer_distance.Function.torch import sided_torch
+from chamfer_distance.Function.triton import SidedTriton
+from chamfer_distance.Function.cuda import SidedCUDA
+from chamfer_distance.Function.cukd import SidedCUKD
+from chamfer_distance.Function.faiss import SidedFAISS
 
 
-class ChamferDistances(object):
+class SidedDistances(object):
     algo_interval_dict = loadAlgoIntervalDict()
 
     @staticmethod
     def loadFusionAlgo(
         algo_equal_fps_point_txt_file_path: str = ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
     ):
-        ChamferDistances.algo_interval_dict = loadAlgoIntervalDict(
+        SidedDistances.algo_interval_dict = loadAlgoIntervalDict(
             algo_equal_fps_point_txt_file_path
         )
 
     def __init__(self, algo_equal_fps_point_txt_file_path: Union[str, None]) -> None:
         if algo_equal_fps_point_txt_file_path is not None:
-            ChamferDistances.loadFusionAlgo(algo_equal_fps_point_txt_file_path)
+            SidedDistances.loadFusionAlgo(algo_equal_fps_point_txt_file_path)
         return
 
     @staticmethod
     def default(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         if xyz1.shape[1] * xyz2.shape[1] > 40000**2:
-            print("[WARN][ChamferDistances::default]")
+            print("[WARN][SidedDistances::default]")
             print("\t data are too large! will stop calculation!")
-            return torch.empty(0), torch.empty(0), torch.empty(0), torch.empty(0)
+            return torch.empty(0), torch.empty(0)
 
-        return chamfer_torch(xyz1, xyz2)
+        return sided_torch(xyz1, xyz2)
 
     @staticmethod
     def triton(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferTriton.apply(xyz1, xyz2)
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return SidedTriton.apply(xyz1, xyz2)
 
     @staticmethod
     def cuda(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferCUDA.apply(xyz1, xyz2)
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return SidedCUDA.apply(xyz1, xyz2)
 
     @staticmethod
     def cukd(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferCUKD.apply(xyz1, xyz2)
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return SidedCUKD.apply(xyz1, xyz2)
 
     @staticmethod
     def kaolin(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         dists1, idxs1 = sided_distance(xyz1, xyz2)
-        dists2, idxs2 = sided_distance(xyz2, xyz1)
-        return dists1, dists2, idxs1, idxs2
+        return dists1, idxs1
 
     @staticmethod
     def faiss(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferFAISS.apply(xyz1, xyz2)
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        return SidedFAISS.apply(xyz1, xyz2)
 
     @staticmethod
     def getAlgoDict() -> dict:
         algo_dict = {
-            "default": ChamferDistances.default,
+            "default": SidedDistances.default,
         }
 
         gpu_algo_dict = {
-            "triton": ChamferDistances.triton,
-            "cuda": ChamferDistances.cuda,
-            "cukd": ChamferDistances.cukd,
-            "kaolin": ChamferDistances.kaolin,
-            "faiss": ChamferDistances.faiss,
+            "triton": SidedDistances.triton,
+            "cuda": SidedDistances.cuda,
+            "cukd": SidedDistances.cukd,
+            "kaolin": SidedDistances.kaolin,
+            "faiss": SidedDistances.faiss,
         }
 
-        if ChamferDistances.algo_interval_dict is not None:
-            gpu_algo_dict["fusion"] = ChamferDistances.fusion
+        if SidedDistances.algo_interval_dict is not None:
+            gpu_algo_dict["fusion"] = SidedDistances.fusion
 
         if torch.cuda.is_available():
             algo_dict.update(gpu_algo_dict)
@@ -102,10 +101,10 @@ class ChamferDistances(object):
 
     @staticmethod
     def namedAlgo(algo_name: str):
-        algo_dict = ChamferDistances.getAlgoDict()
+        algo_dict = SidedDistances.getAlgoDict()
 
         if algo_name not in algo_dict.keys():
-            print("[ERROR][ChamferDistances::namedAlgo]")
+            print("[ERROR][SidedDistances::namedAlgo]")
             print("\t algo name not valid!")
             print("\t algo_name:", algo_name)
             print("\t valid algo names are:")
@@ -118,27 +117,27 @@ class ChamferDistances(object):
     def fusion(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        assert ChamferDistances.algo_interval_dict is not None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert SidedDistances.algo_interval_dict is not None
 
         calculation_num = xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1]
 
-        for algo_name, algo_interval in ChamferDistances.algo_interval_dict.items():
+        for algo_name, algo_interval in SidedDistances.algo_interval_dict.items():
             if calculation_num < algo_interval[0] or calculation_num > algo_interval[1]:
                 continue
 
-            algo_func = ChamferDistances.namedAlgo(algo_name)
+            algo_func = SidedDistances.namedAlgo(algo_name)
             assert algo_func is not None
 
             return algo_func(xyz1, xyz2)
 
     @staticmethod
     def getAlgoNameList() -> list:
-        return list(ChamferDistances.getAlgoDict().keys())
+        return list(SidedDistances.getAlgoDict().keys())
 
     @staticmethod
     def isAlgoNameValid(algo_name: str) -> bool:
-        algo_name_list = ChamferDistances.getAlgoNameList()
+        algo_name_list = SidedDistances.getAlgoNameList()
         return algo_name in algo_name_list
 
     @staticmethod
@@ -147,7 +146,7 @@ class ChamferDistances(object):
 
     @staticmethod
     def getBenchmarkAlgo():
-        return ChamferDistances.namedAlgo(ChamferDistances.getBenchmarkAlgoName())
+        return SidedDistances.namedAlgo(SidedDistances.getBenchmarkAlgoName())
 
     @staticmethod
     def check(
@@ -160,13 +159,11 @@ class ChamferDistances(object):
         xyz1.requires_grad_(True)
         xyz2.requires_grad_(True)
 
-        algo_dict = ChamferDistances.getAlgoDict()
+        algo_dict = SidedDistances.getAlgoDict()
 
         for algo_name, algo_func in algo_dict.items():
-            print("[INFO][ChamferDistances::check]")
+            print("[INFO][SidedDistances::check]")
             print("\t start check [" + algo_name + "]...", end="")
-            checkChamferResults(
-                algo_func, ChamferDistances.getBenchmarkAlgo(), xyz1, xyz2
-            )
+            checkSidedResults(algo_func, SidedDistances.getBenchmarkAlgo(), xyz1, xyz2)
             print("\t passed!")
         return True

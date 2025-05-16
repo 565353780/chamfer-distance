@@ -3,7 +3,40 @@ import torch
 from chamfer_distance.Method.grad import gradient
 
 
-def checkResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
+def checkSidedResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
+    dist11, idx11 = func1(xyz1, xyz2)
+    dist21, idx21 = func2(xyz1, xyz2)
+
+    if dist11.shape[0] == 0:
+        print("[ERROR][check::checkResults]")
+        print("\t func1 call failed!")
+        return False
+    if dist21.shape[0] == 0:
+        print("[ERROR][check::checkResults]")
+        print("\t func2 call failed!")
+        return False
+
+    loss_1 = dist11.mean()
+    loss_2 = dist21.mean()
+
+    d_xyz11 = gradient(loss_1, xyz1)
+    d_xyz21 = gradient(loss_2, xyz1)
+
+    assert torch.all(idx21 == idx11), print(
+        idx11, "\n", idx21, "\n", torch.where(idx21 != idx11), "\n", idx11.shape
+    )
+
+    assert torch.allclose(dist11, dist21, atol=1e-5), torch.max(
+        torch.abs(dist11 - dist21)
+    )
+
+    assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
+        torch.abs(d_xyz21 - d_xyz11)
+    )
+    return True
+
+
+def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) -> bool:
     dist11, dist12, idx11, idx12 = func1(xyz1, xyz2)
     dist21, dist22, idx21, idx22 = func2(xyz1, xyz2)
 

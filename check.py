@@ -1,6 +1,8 @@
-from chamfer_distance.Demo.chamfer_distances import demo as demo_check_algo
+from chamfer_distance.Demo.chamfer_distances import demo_check_sided, demo_check_chamfer
 
 
 if __name__ == "__main__":
     for _ in range(10):
-        demo_check_algo()
+        demo_check_sided()
+    for _ in range(10):
+        demo_check_chamfer()
