@@ -1,3 +1,4 @@
+#include "cukd_searcher.h"
 #include "faiss_searcher.h"
 #include "sided_cuda.h"
 #include "sided_cukd.h"
@@ -22,4 +23,10 @@ PYBIND11_MODULE(chamfer_cpp, m) {
       .def(pybind11::init<>())
       .def("addPoints", &FAISSSearcher::addPoints, "添加点云数据到索引")
       .def("query", &FAISSSearcher::query, "查询最近邻点");
+
+  // 绑定CUKDSearcher类
+  pybind11::class_<CUKDSearcher>(m, "CUKDSearcher")
+      .def(pybind11::init<>())
+      .def("addPoints", &CUKDSearcher::addPoints, "添加点云数据并构建KD树")
+      .def("query", &CUKDSearcher::query, "查询最近邻点");
 }
