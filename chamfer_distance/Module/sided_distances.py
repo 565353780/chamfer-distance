@@ -10,6 +10,8 @@ from chamfer_distance.Function.triton import SidedTriton
 from chamfer_distance.Function.cuda import SidedCUDA
 from chamfer_distance.Function.cukd import SidedCUKD
 from chamfer_distance.Function.faiss import SidedFAISS
+from chamfer_distance.Module.cukd_searcher import CUKDSearcher
+from chamfer_distance.Module.faiss_searcher import FAISSSearcher
 
 
 class SidedDistances(object):
@@ -77,6 +79,38 @@ class SidedDistances(object):
         return SidedFAISS.apply(xyz1, xyz2)
 
     @staticmethod
+    def cukd_searcher(
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xyz1 = xyz1.squeeze(0)
+        xyz2 = xyz2.squeeze(0)
+
+        cukd_searcher = CUKDSearcher()
+        cukd_searcher.addPoints(xyz2)
+        dist1, idx1 = cukd_searcher.query(xyz1)
+
+        dist1 = dist1.unsqueeze(0)
+        idx1 = idx1.unsqueeze(0)
+        return dist1, idx1
+
+    @staticmethod
+    def faiss_searcher(
+        xyz1: torch.Tensor,
+        xyz2: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        xyz1 = xyz1.squeeze(0)
+        xyz2 = xyz2.squeeze(0)
+
+        faiss_searcher = FAISSSearcher()
+        faiss_searcher.addPoints(xyz2)
+        dist1, idx1 = faiss_searcher.query(xyz1)
+
+        dist1 = dist1.unsqueeze(0)
+        idx1 = idx1.unsqueeze(0)
+        return dist1, idx1
+
+    @staticmethod
     def getAlgoDict() -> dict:
         algo_dict = {
             "default": SidedDistances.default,
@@ -88,6 +122,8 @@ class SidedDistances(object):
             "cukd": SidedDistances.cukd,
             "kaolin": SidedDistances.kaolin,
             "faiss": SidedDistances.faiss,
+            "cukd_searcher": SidedDistances.cukd_searcher,
+            "faiss_searcher": SidedDistances.faiss_searcher,
         }
 
         if SidedDistances.algo_interval_dict is not None:
@@ -157,7 +193,6 @@ class SidedDistances(object):
         xyz2 = torch.randn(*xyz2_shape).cuda()
 
         xyz1.requires_grad_(True)
-        xyz2.requires_grad_(True)
 
         algo_dict = SidedDistances.getAlgoDict()
 

@@ -32,10 +32,12 @@ class ChamferSpeedManager(object):
             print("\t namedAlgo failed!")
             return 0.0
 
-        if algo_name == "cpu":
+        if algo_name == "default":
             if xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1] > 40000**2:
                 print("[WARN][ChamferSpeedManager::getAlgoFPS]")
-                print("\t data too large for cpu calculation! will return fps = 0.0!")
+                print(
+                    "\t data too large for default calculation! will return fps = 0.0!"
+                )
                 return 0.0
 
         print("[INFO][ChamferSpeedManager]")

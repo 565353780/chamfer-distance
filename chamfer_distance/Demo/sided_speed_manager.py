@@ -38,6 +38,8 @@ def demo_balance():
 def demo_speed():
     point_cloud_sizes_m = [100, 1000, 10000, 100000]
     point_cloud_sizes_n = [100, 1000, 10000, 100000]
+    point_cloud_sizes_m = [300000]
+    point_cloud_sizes_n = [400000]
 
     print("\n开始进行Sided算法性能对比测试...")
     algo_fps_map_dict = SidedSpeedManager.getAlgoFPSMapDict(

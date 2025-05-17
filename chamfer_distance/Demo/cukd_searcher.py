@@ -7,7 +7,7 @@ from chamfer_distance.Module.cukd_searcher import CUKDSearcher
 
 
 def demo():
-    test_num = 1000
+    test_num = 100
 
     # 确保CUDA可用
     if not torch.cuda.is_available():
@@ -21,6 +21,8 @@ def demo():
     # 创建两个点云
     xyz1 = torch.rand(1, n_points, 3, device="cuda").float()  # 查询点云
     xyz2 = torch.rand(1, m_points, 3, device="cuda").float()  # 静态点云
+
+    xyz1.requires_grad_(True)
 
     print(f"点云1形状: {xyz1.shape}")
     print(f"点云2形状: {xyz2.shape}")

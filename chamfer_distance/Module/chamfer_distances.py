@@ -10,6 +10,8 @@ from chamfer_distance.Function.triton import ChamferTriton
 from chamfer_distance.Function.cuda import ChamferCUDA
 from chamfer_distance.Function.cukd import ChamferCUKD
 from chamfer_distance.Function.faiss import ChamferFAISS
+from chamfer_distance.Module.cukd_searcher import CUKDSearcher
+from chamfer_distance.Module.faiss_searcher import FAISSSearcher
 
 
 class ChamferDistances(object):
