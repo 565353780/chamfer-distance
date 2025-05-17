@@ -14,12 +14,6 @@ class GpuIndexFlatL2;
 
 // FAISSSearcher类，用于在GPU上进行最近邻搜索
 class FAISSSearcher {
-private:
-  std::unique_ptr<faiss::gpu::StandardGpuResources> res;
-  std::unique_ptr<faiss::gpu::GpuIndexFlatL2> index;
-  int dimension;
-  bool initialized;
-
 public:
   FAISSSearcher();
   ~FAISSSearcher();
@@ -30,5 +24,11 @@ public:
   // 查询最近邻点
   std::vector<torch::Tensor>
   query(const torch::Tensor &points); // [M, D] -> [dist, idx]
+
+private:
+  std::unique_ptr<faiss::gpu::StandardGpuResources> res;
+  std::unique_ptr<faiss::gpu::GpuIndexFlatL2> index;
+  int dimension;
+  bool initialized;
 };
 #endif
