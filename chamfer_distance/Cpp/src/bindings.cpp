@@ -1,3 +1,4 @@
+#include "faiss_searcher.h"
 #include "sided_cuda.h"
 #include "sided_cukd.h"
 #include "sided_faiss.h"
