@@ -83,9 +83,6 @@ class SidedDistances(object):
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        xyz1 = xyz1.squeeze(0)
-        xyz2 = xyz2.squeeze(0)
-
         cukd_searcher = CUKDSearcher()
         cukd_searcher.addPoints(xyz2)
         dist1, idx1 = cukd_searcher.query(xyz1)
@@ -99,9 +96,6 @@ class SidedDistances(object):
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        xyz1 = xyz1.squeeze(0)
-        xyz2 = xyz2.squeeze(0)
-
         faiss_searcher = FAISSSearcher()
         faiss_searcher.addPoints(xyz2)
         dist1, idx1 = faiss_searcher.query(xyz1)
