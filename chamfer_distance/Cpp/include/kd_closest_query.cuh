@@ -1,13 +1,9 @@
-// Heavily copied from https://github.com/tilmantroester/cudakdtree_jax_binding
-
-#ifndef KD_CLOSEST_QUERY_CUH
-#define KD_CLOSEST_QUERY_CUH
-
-#include <torch/extension.h>
+#pragma once
 
 #include <cuda_runtime.h>
 #include <cukd/builder.h>
 #include <cukd/fcp.h>
+#include <torch/extension.h>
 
 template <typename PointT> struct OrderedPoint {
   PointT position;
@@ -59,9 +55,12 @@ ClosestPointKernel(T *d_dists, int *d_indices, PointT *d_queries,
           queryPos, *d_bounds, d_nodes, numNodes, params);
   int idx = d_nodes[closestID].idx;
   PointT inputPos = d_nodes[closestID].position;
-  d_dists[tid] = std::pow(queryPos.x - inputPos.x, 2) +
-                 std::pow(queryPos.y - inputPos.y, 2) +
-                 std::pow(queryPos.z - inputPos.z, 2);
+
+  float x_diff = queryPos.x - inputPos.x;
+  float y_diff = queryPos.y - inputPos.y;
+  float z_diff = queryPos.z - inputPos.z;
+  d_dists[tid] = x_diff * x_diff + y_diff * y_diff + z_diff * z_diff;
+
   d_indices[tid] = idx;
 }
 
@@ -107,5 +106,3 @@ std::vector<torch::Tensor> KDQueryClosest(cudaStream_t stream,
 
   return {dists, idxs};
 }
-
-#endif // KD_CLOSEST_QUERY_CUH
