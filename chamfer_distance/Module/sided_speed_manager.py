@@ -5,7 +5,7 @@ from time import time
 from typing import Union
 from scipy.optimize import brentq
 
-from chamfer_distance.Config.path import ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
+from chamfer_distance.Config.path import SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Data.fps_map import FPSMap
 from chamfer_distance.Method.path import createFileFolder
 from chamfer_distance.Module.sided_distances import SidedDistances
@@ -346,7 +346,7 @@ class SidedSpeedManager(object):
     @staticmethod
     def saveEqualFPSPoint(
         algo_interval_dict: dict,
-        save_equal_fps_point_txt_file_path: str = ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
+        save_equal_fps_point_txt_file_path: str = SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
     ) -> bool:
         createFileFolder(save_equal_fps_point_txt_file_path)
 

@@ -2,9 +2,9 @@ import torch
 from typing import Union, Tuple
 from kaolin.metrics.pointcloud import sided_distance
 
-from chamfer_distance.Config.path import ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
+from chamfer_distance.Config.path import SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkSidedResults
-from chamfer_distance.Method.io import loadAlgoIntervalDict
+from chamfer_distance.Method.io import loadSidedAlgoIntervalDict
 from chamfer_distance.Function.torch import sided_torch
 from chamfer_distance.Function.triton import SidedTriton
 from chamfer_distance.Function.cuda import SidedCUDA
@@ -13,13 +13,13 @@ from chamfer_distance.Function.faiss import SidedFAISS
 
 
 class SidedDistances(object):
-    algo_interval_dict = loadAlgoIntervalDict()
+    algo_interval_dict = loadSidedAlgoIntervalDict()
 
     @staticmethod
     def loadFusionAlgo(
-        algo_equal_fps_point_txt_file_path: str = ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
+        algo_equal_fps_point_txt_file_path: str = SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
     ):
-        SidedDistances.algo_interval_dict = loadAlgoIntervalDict(
+        SidedDistances.algo_interval_dict = loadSidedAlgoIntervalDict(
             algo_equal_fps_point_txt_file_path
         )
 
