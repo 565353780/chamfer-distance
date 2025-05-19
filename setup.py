@@ -71,6 +71,7 @@ if len(compute_capabilities) > 0:
             "-DUSE_CUDA",
             "-DTCNN_NO_NETWORKS",
             f"-DTCNN_MIN_GPU_ARCH={compute_capability}",
+            "-DTORCH_USE_CUDA_DSA",
         ],
         "nvcc": nvcc_flags
         + [
@@ -80,6 +81,7 @@ if len(compute_capabilities) > 0:
             "-DUSE_CUDA",
             "-DTCNN_NO_NETWORKS",
             f"-DTCNN_MIN_GPU_ARCH={compute_capability}",
+            "-DTORCH_USE_CUDA_DSA",
         ],
     }
 

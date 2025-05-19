@@ -5,7 +5,7 @@ from kaolin.metrics.pointcloud import sided_distance
 from chamfer_distance.Config.path import CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkChamferResults
 from chamfer_distance.Method.io import loadChamferAlgoIntervalDict
-from chamfer_distance.Function.torch import chamfer_torch
+from chamfer_distance.Method.chamfer_torch import chamfer_torch
 from chamfer_distance.Function.triton import ChamferTriton
 from chamfer_distance.Function.cuda import ChamferCUDA
 from chamfer_distance.Function.cukd import ChamferCUKD

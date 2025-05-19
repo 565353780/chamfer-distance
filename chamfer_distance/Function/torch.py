@@ -1,6 +1,5 @@
-from chamfer_distance.Method.chamfer_torch import chamfer_torch
+from chamfer_distance.Method.forwards import sided_forward_func
 
 
-def sided_torch(a, b):
-    dist1, dist2, idx1, idx2 = chamfer_torch(a, b)
-    return dist1, idx1
+def sided_torch(xyz1, xyz2):
+    return sided_forward_func("torch", xyz1, xyz2)
