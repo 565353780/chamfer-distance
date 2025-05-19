@@ -4,14 +4,37 @@
 #include <stdio.h>
 #include <torch/extension.h>
 
+// NM_KERNEL_TILE_SIZE controls the tile size used in shared memory for the
+// NmDistanceKernel. This value impacts performance and can be tuned based on
+// the specific GPU architecture and problem size. A larger tile size can
+// increase parallelism but may also lead to register spilling or reduced
+// occupancy if it exceeds available shared memory or registers. It's
+// recommended to experiment with different values (e.g., powers of 2 like 256,
+// 512, 1024) to find the optimal setting for your use case.
+const int NM_KERNEL_TILE_SIZE = 512;
+
+// THREADS_PER_BLOCK_VAL defines the number of threads per CUDA block.
+// This value is crucial for balancing parallelism and resource utilization
+// (registers, shared memory per block). It's often a power of 2 (e.g., 256,
+// 512, 1024). The optimal value depends on the kernel's complexity and the
+// target GPU.
+const int THREADS_PER_BLOCK_VAL = 512;
+
+// GRID_DIM_X_VAL specifies the number of blocks in the x-dimension of the CUDA
+// grid for the NmDistanceKernel. The kernel uses a grid-stride loop for the
+// batch dimension 'b', meaning gridDim.x determines the initial number of
+// parallel batch computations. A common value for such loops is 32, but this
+// can be tuned based on 'b' and GPU characteristics.
+const unsigned int GRID_DIM_X_VAL = 32;
+
 __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
                                  const int m, const float *xyz2, float *result,
                                  int *result_i) {
-  const int batch = 512;
-  __shared__ float buf[batch * 3];
+  const int batch = NM_KERNEL_TILE_SIZE;
+  __shared__ float buf[NM_KERNEL_TILE_SIZE * 3];
   for (int i = blockIdx.x; i < b; i += gridDim.x) {
-    for (int k2 = 0; k2 < m; k2 += batch) {
-      int end_k = min(m, k2 + batch) - k2;
+    for (int k2 = 0; k2 < m; k2 += NM_KERNEL_TILE_SIZE) {
+      int end_k = min(m, k2 + NM_KERNEL_TILE_SIZE) - k2;
       for (int j = threadIdx.x; j < end_k * 3; j += blockDim.x) {
         buf[j] = xyz2[(i * m + k2) * 3 + j];
       }
@@ -24,8 +47,8 @@ __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
         int best_i = 0;
         float best = 0;
         int end_ka = end_k - (end_k & 3);
-        if (end_ka == batch) {
-          for (int k = 0; k < batch; k += 4) {
+        if (end_ka == NM_KERNEL_TILE_SIZE) {
+          for (int k = 0; k < NM_KERNEL_TILE_SIZE; k += 4) {
             {
               float x2 = buf[k * 3 + 0] - x1;
               float y2 = buf[k * 3 + 1] - y1;
@@ -146,13 +169,14 @@ void sided_forward_cuda(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
   }
 
   const int threads_per_block_val =
-      512; // Number of threads per block, matching original launch.
+      THREADS_PER_BLOCK_VAL; // Number of threads per block, matching original
+                             // launch.
 
   // For grid_dim_x, the kernel uses a grid-stride loop: for (int i =
   // blockIdx.x; i < b; i += gridDim.x) This means grid_dim_x is the total
   // number of blocks launched in the x-dimension. 32 is a common fixed value
   // for such loops, as in the original launch.
-  unsigned int grid_dim_x = 32;
+  unsigned int grid_dim_x = GRID_DIM_X_VAL;
 
   // For grid_dim_y, it's related to n (number of points in the first cloud).
   // The kernel loop for j is: for (int j = threadIdx.x + blockIdx.y *
