@@ -104,5 +104,13 @@ std::vector<torch::Tensor> KDQueryClosest(cudaStream_t stream,
                                  numInput);
   CUKD_CUDA_SYNC_CHECK();
 
-  return {dists, idxs};
+  // 获取结果后释放GPU内存，避免内存泄漏
+  std::vector<torch::Tensor> result = {dists, idxs};
+
+  // 释放分配的GPU内存
+  CUKD_CUDA_CHECK(cudaFreeAsync(d_input, stream));
+  CUKD_CUDA_CHECK(cudaFreeAsync(d_bounds, stream));
+  CUKD_CUDA_SYNC_CHECK();
+
+  return result;
 }
