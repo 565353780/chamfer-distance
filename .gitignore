@@ -8,6 +8,7 @@ build
 compile_commands.json
 dist
 *.so
+.DS_Store
 
 # output
 output
