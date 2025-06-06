@@ -1,6 +1,12 @@
 import torch
 from typing import Union, Tuple
-from kaolin.metrics.pointcloud import sided_distance
+
+try:
+    from kaolin.metrics.pointcloud import sided_distance
+
+    KAOLIN_VALID = True
+except:
+    KAOLIN_VALID = False
 
 from chamfer_distance.Config.path import SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkSidedResults
@@ -114,11 +120,13 @@ class SidedDistances(object):
             "triton": SidedDistances.triton,
             "cuda": SidedDistances.cuda,
             "cukd": SidedDistances.cukd,
-            "kaolin": SidedDistances.kaolin,
             "faiss": SidedDistances.faiss,
             "cukd_searcher": SidedDistances.cukd_searcher,
             "faiss_searcher": SidedDistances.faiss_searcher,
         }
+
+        if KAOLIN_VALID:
+            gpu_algo_dict["kaolin"] = SidedDistances.kaolin
 
         if SidedDistances.algo_interval_dict is not None:
             gpu_algo_dict["fusion"] = SidedDistances.fusion
