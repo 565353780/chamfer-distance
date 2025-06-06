@@ -46,12 +46,6 @@ def sided_forward_func(
             chamfer_cpp.sided_forward_cukd(
                 local_xyz1, local_xyz2, local_dist1, local_idx1
             )
-        elif name == "faiss":
-            local_idx1 = local_idx1.type(torch.int64)
-            chamfer_cpp.sided_forward_faiss(
-                local_xyz1, local_xyz2, local_dist1, local_idx1
-            )
-            local_idx1 = local_idx1.type(torch.int32)
         else:
             print("[ERROR][forwards::sided_forward_func]")
             print("\t func not found!")

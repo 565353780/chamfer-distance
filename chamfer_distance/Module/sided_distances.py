@@ -1,13 +1,6 @@
 import torch
 from typing import Union, Tuple
 
-try:
-    from kaolin.metrics.pointcloud import sided_distance
-
-    KAOLIN_VALID = True
-except:
-    KAOLIN_VALID = False
-
 from chamfer_distance.Config.path import SIDED_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkSidedResults
 from chamfer_distance.Method.io import loadSidedAlgoIntervalDict
@@ -15,9 +8,7 @@ from chamfer_distance.Function.torch import sided_torch
 from chamfer_distance.Function.triton import SidedTriton
 from chamfer_distance.Function.cuda import SidedCUDA
 from chamfer_distance.Function.cukd import SidedCUKD
-from chamfer_distance.Function.faiss import SidedFAISS
 from chamfer_distance.Module.cukd_searcher import CUKDSearcher
-from chamfer_distance.Module.faiss_searcher import FAISSSearcher
 
 
 class SidedDistances(object):
@@ -70,21 +61,6 @@ class SidedDistances(object):
         return SidedCUKD.apply(xyz1, xyz2)
 
     @staticmethod
-    def kaolin(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        dists1, idxs1 = sided_distance(xyz1, xyz2)
-        return dists1, idxs1
-
-    @staticmethod
-    def faiss(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return SidedFAISS.apply(xyz1, xyz2)
-
-    @staticmethod
     def cukd_searcher(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
@@ -92,19 +68,6 @@ class SidedDistances(object):
         cukd_searcher = CUKDSearcher()
         cukd_searcher.addPoints(xyz2)
         dist1, idx1 = cukd_searcher.query(xyz1)
-
-        dist1 = dist1.unsqueeze(0)
-        idx1 = idx1.unsqueeze(0)
-        return dist1, idx1
-
-    @staticmethod
-    def faiss_searcher(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        faiss_searcher = FAISSSearcher()
-        faiss_searcher.addPoints(xyz2)
-        dist1, idx1 = faiss_searcher.query(xyz1)
 
         dist1 = dist1.unsqueeze(0)
         idx1 = idx1.unsqueeze(0)
@@ -120,13 +83,8 @@ class SidedDistances(object):
             "triton": SidedDistances.triton,
             "cuda": SidedDistances.cuda,
             "cukd": SidedDistances.cukd,
-            "faiss": SidedDistances.faiss,
             "cukd_searcher": SidedDistances.cukd_searcher,
-            "faiss_searcher": SidedDistances.faiss_searcher,
         }
-
-        if KAOLIN_VALID:
-            gpu_algo_dict["kaolin"] = SidedDistances.kaolin
 
         if SidedDistances.algo_interval_dict is not None:
             gpu_algo_dict["fusion"] = SidedDistances.fusion

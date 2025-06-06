@@ -1,6 +1,5 @@
 import os
 import glob
-from platform import system
 from setuptools import find_packages, setup
 from torch.utils.cpp_extension import CUDAExtension, CppExtension, BuildExtension
 
@@ -9,10 +8,6 @@ from chamfer_distance.Method.setup import (
     getSupportedComputeCapabilities,
 )
 
-SYSTEM = system()
-
-FAISS_INCLUDE = os.path.join(os.environ["CONDA_PREFIX"], "include")
-FAISS_LIB = os.path.join(os.environ["CONDA_PREFIX"], "lib")
 
 cpp_standard = getCppStandard()
 compute_capabilities = getSupportedComputeCapabilities()
@@ -29,7 +24,6 @@ chamfer_include_dirs = [
     chamfer_lib_path + "tiny-cuda-nn/include",
     chamfer_lib_path + "tiny-cuda-nn/dependencies",
     chamfer_lib_path + "tiny-cuda-nn/dependencies/fmt/include",
-    FAISS_INCLUDE,
 ]
 
 chamfer_extra_compile_args = [
@@ -90,15 +84,7 @@ if len(compute_capabilities) > 0:
         sources=chamfer_sources,
         include_dirs=chamfer_include_dirs,
         extra_compile_args=extra_compile_args,
-        library_dirs=[
-            FAISS_LIB,
-        ],
-        libraries=[
-            "cuda",
-            "faiss",
-            "cuvs",
-            "cudart",
-        ],
+        libraries=["cuda", "cudart"],
     )
 
 else:

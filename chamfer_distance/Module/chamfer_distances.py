@@ -1,13 +1,6 @@
 import torch
 from typing import Union, Tuple
 
-try:
-    from kaolin.metrics.pointcloud import sided_distance
-
-    KAOLIN_VALID = True
-except:
-    KAOLIN_VALID = False
-
 from chamfer_distance.Config.path import CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkChamferResults
 from chamfer_distance.Method.io import loadChamferAlgoIntervalDict
@@ -15,9 +8,6 @@ from chamfer_distance.Method.chamfer_torch import chamfer_torch
 from chamfer_distance.Function.triton import ChamferTriton
 from chamfer_distance.Function.cuda import ChamferCUDA
 from chamfer_distance.Function.cukd import ChamferCUKD
-from chamfer_distance.Function.faiss import ChamferFAISS
-from chamfer_distance.Module.cukd_searcher import CUKDSearcher
-from chamfer_distance.Module.faiss_searcher import FAISSSearcher
 
 
 class ChamferDistances(object):
@@ -70,22 +60,6 @@ class ChamferDistances(object):
         return ChamferCUKD.apply(xyz1, xyz2)
 
     @staticmethod
-    def kaolin(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        dists1, idxs1 = sided_distance(xyz1, xyz2)
-        dists2, idxs2 = sided_distance(xyz2, xyz1)
-        return dists1, dists2, idxs1, idxs2
-
-    @staticmethod
-    def faiss(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferFAISS.apply(xyz1, xyz2)
-
-    @staticmethod
     def getAlgoDict() -> dict:
         algo_dict = {
             "default": ChamferDistances.default,
@@ -95,11 +69,7 @@ class ChamferDistances(object):
             "triton": ChamferDistances.triton,
             "cuda": ChamferDistances.cuda,
             "cukd": ChamferDistances.cukd,
-            "faiss": ChamferDistances.faiss,
         }
-
-        if KAOLIN_VALID:
-            gpu_algo_dict["kaolin"] = ChamferDistances.kaolin
 
         if ChamferDistances.algo_interval_dict is not None:
             gpu_algo_dict["fusion"] = ChamferDistances.fusion
