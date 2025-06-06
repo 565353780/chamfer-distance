@@ -11,21 +11,21 @@
 // occupancy if it exceeds available shared memory or registers. It's
 // recommended to experiment with different values (e.g., powers of 2 like 256,
 // 512, 1024) to find the optimal setting for your use case.
-const int NM_KERNEL_TILE_SIZE = 512;
+const int NM_KERNEL_TILE_SIZE = 1024;
 
 // THREADS_PER_BLOCK_VAL defines the number of threads per CUDA block.
 // This value is crucial for balancing parallelism and resource utilization
 // (registers, shared memory per block). It's often a power of 2 (e.g., 256,
 // 512, 1024). The optimal value depends on the kernel's complexity and the
 // target GPU.
-const int THREADS_PER_BLOCK_VAL = 512;
+const int THREADS_PER_BLOCK_VAL = 1024;
 
 // GRID_DIM_X_VAL specifies the number of blocks in the x-dimension of the CUDA
 // grid for the NmDistanceKernel. The kernel uses a grid-stride loop for the
 // batch dimension 'b', meaning gridDim.x determines the initial number of
 // parallel batch computations. A common value for such loops is 32, but this
 // can be tuned based on 'b' and GPU characteristics.
-const unsigned int GRID_DIM_X_VAL = 32;
+const unsigned int GRID_DIM_X_VAL = 256;
 
 __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
                                  const int m, const float *xyz2, float *result,
