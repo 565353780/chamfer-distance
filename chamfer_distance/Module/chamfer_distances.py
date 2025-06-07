@@ -3,9 +3,7 @@ from typing import Tuple
 
 from chamfer_distance.Method.check import checkChamferResults
 from chamfer_distance.Method.chamfer_torch import chamfer_torch
-from chamfer_distance.Function.triton import ChamferTriton
-from chamfer_distance.Function.cuda import ChamferCUDA
-from chamfer_distance.Function.cukd import ChamferCUKD
+from chamfer_distance.Method.functions import ChamferFunction
 
 
 class ChamferDistances(object):
@@ -26,21 +24,21 @@ class ChamferDistances(object):
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferTriton.apply(xyz1, xyz2)
+        return ChamferFunction.apply(xyz1, xyz2, "triton")
 
     @staticmethod
     def cuda(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferCUDA.apply(xyz1, xyz2)
+        return ChamferFunction.apply(xyz1, xyz2, "cuda")
 
     @staticmethod
     def cukd(
         xyz1: torch.Tensor,
         xyz2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        return ChamferCUKD.apply(xyz1, xyz2)
+        return ChamferFunction.apply(xyz1, xyz2, "cukd")
 
     @staticmethod
     def getAlgoDict() -> dict:
@@ -53,9 +51,6 @@ class ChamferDistances(object):
             "cuda": ChamferDistances.cuda,
             "cukd": ChamferDistances.cukd,
         }
-
-        if ChamferDistances.algo_interval_dict is not None:
-            gpu_algo_dict["fusion"] = ChamferDistances.fusion
 
         if torch.cuda.is_available():
             algo_dict.update(gpu_algo_dict)
@@ -76,24 +71,6 @@ class ChamferDistances(object):
             return None
 
         return algo_dict[algo_name]
-
-    @staticmethod
-    def fusion(
-        xyz1: torch.Tensor,
-        xyz2: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        assert ChamferDistances.algo_interval_dict is not None
-
-        calculation_num = xyz1.shape[0] * xyz1.shape[1] * xyz2.shape[0] * xyz2.shape[1]
-
-        for algo_name, algo_interval in ChamferDistances.algo_interval_dict.items():
-            if calculation_num < algo_interval[0] or calculation_num > algo_interval[1]:
-                continue
-
-            algo_func = ChamferDistances.namedAlgo(algo_name)
-            assert algo_func is not None
-
-            return algo_func(xyz1, xyz2)
 
     @staticmethod
     def getAlgoNameList() -> list:
