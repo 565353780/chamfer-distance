@@ -1,10 +1,21 @@
 import torch
 from typing import Tuple
 
-import chamfer_cpp
+try:
+    import chamfer_cpp
+
+    CHAMFER_CPP_LOADED = True
+except:
+    CHAMFER_CPP_LOADED = False
 
 from chamfer_distance.Method.chamfer_torch import chamfer_torch
-from chamfer_distance.Method.chamfer_triton import sided_triton
+
+try:
+    from chamfer_distance.Method.chamfer_triton import sided_triton
+
+    TRITON_LOADED = True
+except:
+    TRITON_LOADED = False
 
 
 def sided_forward_func(
@@ -36,13 +47,13 @@ def sided_forward_func(
 
         if name == "torch":
             local_dist1, _, local_idx1, _ = chamfer_torch(local_xyz1, local_xyz2)
-        elif name == "triton":
+        elif TRITON_LOADED and name == "triton":
             local_dist1, local_idx1 = sided_triton(local_xyz1, local_xyz2)
-        elif name == "cuda":
+        elif CHAMFER_CPP_LOADED and name == "cuda":
             chamfer_cpp.sided_forward_cuda(
                 local_xyz1, local_xyz2, local_dist1, local_idx1
             )
-        elif name == "cukd":
+        elif CHAMFER_CPP_LOADED and name == "cukd":
             chamfer_cpp.sided_forward_cukd(
                 local_xyz1, local_xyz2, local_dist1, local_idx1
             )

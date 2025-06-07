@@ -1,13 +1,23 @@
 import torch
 from typing import Tuple
 
-import chamfer_cpp
+try:
+    import chamfer_cpp
+
+    CHAMFER_CPP_LOADED = True
+except:
+    CHAMFER_CPP_LOADED = False
 
 from chamfer_distance.Method.functions import SearcherFunction
 
 
 class CUKDSearcher(object):
     def __init__(self):
+        if not CHAMFER_CPP_LOADED:
+            print("[ERROR][CUKDSearcher::__init__]")
+            print("\t chamfer_cpp can not be imported! please compile it first!")
+            exit()
+
         self.searcher = chamfer_cpp.CUKDSearcher()
 
         self.gt_points = None

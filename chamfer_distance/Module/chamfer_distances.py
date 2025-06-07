@@ -93,12 +93,20 @@ class ChamferDistances(object):
     def check(
         xyz1_shape: list = [1, 4000, 3],
         xyz2_shape: list = [1, 4000, 3],
+        xyz1_requires_grad: bool = True,
+        xyz2_requires_grad: bool = True,
     ) -> bool:
-        xyz1 = torch.randn(*xyz1_shape).cuda()
-        xyz2 = torch.randn(*xyz2_shape).cuda()
+        if torch.cuda.is_available():
+            device = "cuda"
+        else:
+            device = "cpu"
+        xyz1 = torch.randn(*xyz1_shape).to(device)
+        xyz2 = torch.randn(*xyz2_shape).to(device)
 
-        xyz1.requires_grad_(True)
-        xyz2.requires_grad_(True)
+        if xyz1_requires_grad:
+            xyz1.requires_grad_(True)
+        if xyz2_requires_grad:
+            xyz2.requires_grad_(True)
 
         algo_dict = ChamferDistances.getAlgoDict()
 

@@ -25,23 +25,12 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
     assert loss_1 >= 0, print(loss_1)
     assert loss_2 >= 0, print(loss_2)
 
-    d_xyz11 = gradient(loss_1, xyz1)
-    d_xyz12 = gradient(loss_1, xyz2)
-    d_xyz21 = gradient(loss_2, xyz1)
-    d_xyz22 = gradient(loss_2, xyz2)
-
     assert torch.allclose(dist11, dist21, atol=1e-5), torch.max(
         torch.abs(dist11 - dist21)
     )
+
     assert torch.allclose(dist12, dist22, atol=1e-5), torch.max(
         torch.abs(dist12 - dist22)
-    )
-
-    assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
-        torch.abs(d_xyz21 - d_xyz11)
-    )
-    assert torch.allclose(d_xyz22, d_xyz12, atol=1e-5), torch.max(
-        torch.abs(d_xyz22 - d_xyz12)
     )
 
     not_match_idxs = torch.where(idx21 != idx11)
@@ -55,5 +44,21 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
         assert torch.allclose(
             dist12[not_match_idxs], dist22[not_match_idxs], atol=1e-5
         ), torch.max(torch.abs(dist12[not_match_idxs] - dist22[not_match_idxs]))
+
+    if xyz1.requires_grad:
+        d_xyz11 = gradient(loss_1, xyz1)
+        d_xyz21 = gradient(loss_2, xyz1)
+
+        assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
+            torch.abs(d_xyz21 - d_xyz11)
+        )
+
+    if xyz2.requires_grad:
+        d_xyz12 = gradient(loss_1, xyz2)
+        d_xyz22 = gradient(loss_2, xyz2)
+
+        assert torch.allclose(d_xyz22, d_xyz12, atol=1e-5), torch.max(
+            torch.abs(d_xyz22 - d_xyz12)
+        )
 
     return True
