@@ -3,11 +3,8 @@ import numpy as np
 from math import sqrt
 from time import time
 from typing import Union
-from scipy.optimize import brentq
 
-from chamfer_distance.Config.path import CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Data.fps_map import FPSMap
-from chamfer_distance.Method.path import createFileFolder
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.timer import Timer
 
@@ -303,65 +300,3 @@ class ChamferSpeedManager(object):
                     algo_fps_map_dict[algo_name].addFPS(m, n, algo_fps)
 
         return algo_fps_map_dict
-
-    @staticmethod
-    def getAlgosEqualFPSPoint(
-        algo_name_1: str,
-        algo_name_2: str,
-        min_calculation_num: Union[int, float] = 1e4,
-        max_calculation_num: Union[int, float] = 1e10,
-        max_test_second: float = 1.0,
-        warmup: int = 10,
-        window_size: int = 10,
-        rel_std_threshold: float = 0.01,
-    ) -> Union[float, None]:
-        if not ChamferDistances.isAlgoNameValid(algo_name_1):
-            print("[ERROR][ChamferSpeedManager::getAlgosEqualFPSPoint]")
-            print("\t namedAlgo failed for algo name 1!")
-            return None
-        if not ChamferDistances.isAlgoNameValid(algo_name_2):
-            print("[ERROR][ChamferSpeedManager::getAlgosEqualFPSPoint]")
-            print("\t namedAlgo failed for algo name 2!")
-            return None
-
-        def fpsDiff(calculation_num: float) -> float:
-            fps_diff = ChamferSpeedManager.getAlgosFPSDiffSimple(
-                algo_name_1,
-                algo_name_2,
-                calculation_num,
-                max_test_second,
-                warmup,
-                window_size,
-                rel_std_threshold,
-            )
-
-            return fps_diff
-
-        equal_fps_point = brentq(
-            fpsDiff,
-            min_calculation_num,
-            max_calculation_num,
-            xtol=1.0,
-            rtol=1e-3,
-            maxiter=100,
-        )
-
-        return equal_fps_point
-
-    @staticmethod
-    def saveEqualFPSPoint(
-        algo_interval_dict: dict,
-        save_equal_fps_point_txt_file_path: str = CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
-    ) -> bool:
-        createFileFolder(save_equal_fps_point_txt_file_path)
-
-        with open(save_equal_fps_point_txt_file_path, "w") as f:
-            for algo_name, algo_interval in algo_interval_dict.items():
-                f.write(algo_name)
-                f.write("|")
-                f.write(str(algo_interval[0]))
-                f.write("|")
-                f.write(str(algo_interval[1]))
-                f.write("\n")
-
-        return True

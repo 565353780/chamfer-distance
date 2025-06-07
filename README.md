@@ -8,12 +8,6 @@ conda activate cd
 ./setup.sh
 ```
 
-## Create Fusion Algo
-
-```bash
-python create_fusion.py
-```
-
 ## Algo Balance Test
 
 ```bash
@@ -36,16 +30,9 @@ and you can get the curve like
 Just use like
 
 ```bash
-from chamfer_distance.Module.sided_distances import SidedDistances
-# fusion is the best choice in most cases on your GPU
-algo_name = 'fusion' or 'cpu' or 'cuda' or 'triton' or 'cuda_kd'
-dists1, idxs1 = SidedDistances.namedAlgo(algo_name)(xyz1, xyz2)
-```
-
-```bash
 from chamfer_distance.Module.chamfer_distances import ChamferDistances
 # fusion is the best choice in most cases on your GPU
-algo_name = 'fusion' or 'cpu' or 'cuda' or 'triton' or 'cuda_kd'
+algo_name = 'cpu' or 'cuda' or 'triton' or 'cukd'
 dists1, dists2, idxs1, idxs2 = ChamferDistances.namedAlgo(algo_name)(xyz1, xyz2)
 ```
 

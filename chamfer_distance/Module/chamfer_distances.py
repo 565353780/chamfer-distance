@@ -1,9 +1,7 @@
 import torch
-from typing import Union, Tuple
+from typing import Tuple
 
-from chamfer_distance.Config.path import CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH
 from chamfer_distance.Method.check import checkChamferResults
-from chamfer_distance.Method.io import loadChamferAlgoIntervalDict
 from chamfer_distance.Method.chamfer_torch import chamfer_torch
 from chamfer_distance.Function.triton import ChamferTriton
 from chamfer_distance.Function.cuda import ChamferCUDA
@@ -11,21 +9,6 @@ from chamfer_distance.Function.cukd import ChamferCUKD
 
 
 class ChamferDistances(object):
-    algo_interval_dict = loadChamferAlgoIntervalDict()
-
-    @staticmethod
-    def loadFusionAlgo(
-        algo_equal_fps_point_txt_file_path: str = CHAMFER_ALGO_EQUAL_FPS_POINT_TXT_FILE_PATH,
-    ):
-        ChamferDistances.algo_interval_dict = loadChamferAlgoIntervalDict(
-            algo_equal_fps_point_txt_file_path
-        )
-
-    def __init__(self, algo_equal_fps_point_txt_file_path: Union[str, None]) -> None:
-        if algo_equal_fps_point_txt_file_path is not None:
-            ChamferDistances.loadFusionAlgo(algo_equal_fps_point_txt_file_path)
-        return
-
     @staticmethod
     def default(
         xyz1: torch.Tensor,

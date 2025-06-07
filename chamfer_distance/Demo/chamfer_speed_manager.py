@@ -4,7 +4,6 @@ from chamfer_distance.Method.render import (
     renderAlgoFPSMapDictCurve,
     renderBestAlgoFPSMapDict,
 )
-from chamfer_distance.Module.chamfer_distances import ChamferDistances
 from chamfer_distance.Module.chamfer_speed_manager import ChamferSpeedManager
 
 
@@ -63,69 +62,14 @@ def demo_best_speed():
     return True
 
 
-def demo_create_fusion(force: bool = False):
-    min_calculation_num = 1e7
-    max_calculation_num = 3e9
-
-    algo_name_1 = "cuda"
-    algo_name_2 = "triton"
-    algo_name_3 = "cuda_kd"
-
-    while (
-        ChamferSpeedManager.getAlgosFPSDiffSimple(
-            algo_name_1, algo_name_2, min_calculation_num
-        )
-        < 0
-    ):
-        min_calculation_num /= 2
-
-    while (
-        ChamferSpeedManager.getAlgosFPSDiffSimple(
-            algo_name_2, algo_name_3, max_calculation_num
-        )
-        > 0
-    ):
-        max_calculation_num *= 2
-
-    if ChamferDistances.algo_interval_dict is not None:
-        if not force:
-            return True
-
-    print(
-        "current search interval: [", min_calculation_num, ",", max_calculation_num, "]"
-    )
-    print("start search the equal fps point...")
-
-    algo_12_equal_fps_point = ChamferSpeedManager.getAlgosEqualFPSPoint(
-        algo_name_1, algo_name_2, min_calculation_num, max_calculation_num
-    )
-
-    print("algo_12_equal_fps_point:", algo_12_equal_fps_point)
-
-    algo_23_equal_fps_point = ChamferSpeedManager.getAlgosEqualFPSPoint(
-        algo_name_2, algo_name_3, min_calculation_num, max_calculation_num
-    )
-
-    print("algo_23_equal_fps_point:", algo_23_equal_fps_point)
-
-    algo_interval_dict = {
-        "cuda": [0, algo_12_equal_fps_point],
-        "triton": [algo_12_equal_fps_point, algo_23_equal_fps_point],
-        "cuda_kd": [algo_23_equal_fps_point, float("inf")],
-    }
-
-    ChamferSpeedManager.saveEqualFPSPoint(algo_interval_dict)
-    ChamferDistances.loadFusionAlgo()
-    return True
-
-
 def demo_best_speed_curve():
     min_calculation_num = 1e7
     max_calculation_num = 3e9
+    record_num = 10
 
     algo_name_1 = "cuda"
     algo_name_2 = "triton"
-    algo_name_3 = "cuda_kd"
+    algo_name_3 = "cukd"
 
     while (
         ChamferSpeedManager.getAlgosFPSDiffSimple(
@@ -143,25 +87,9 @@ def demo_best_speed_curve():
     ):
         max_calculation_num *= 2
 
-    demo_create_fusion()
-    assert ChamferDistances.algo_interval_dict is not None
-
-    algo_12_equal_fps_point = ChamferDistances.algo_interval_dict["triton"][0]
-    algo_23_equal_fps_point = ChamferDistances.algo_interval_dict["cuda_kd"][0]
-
-    calculation_nums_1 = sqrt_uniform_array(
-        start=min_calculation_num, stop=algo_12_equal_fps_point, num=10
-    ).tolist()
-
-    calculation_nums_2 = sqrt_uniform_array(
-        start=algo_12_equal_fps_point, stop=algo_23_equal_fps_point, num=10
-    ).tolist()
-
-    calculation_nums_3 = sqrt_uniform_array(
-        start=algo_23_equal_fps_point, stop=max_calculation_num, num=10
-    ).tolist()
-
-    calculation_nums = calculation_nums_1 + calculation_nums_2 + calculation_nums_3
+    calculation_nums = sqrt_uniform_array(
+        min_calculation_num, max_calculation_num, record_num
+    )
 
     print("\n开始进行Chamfer算法性能对比测试...")
     algo_fps_map_dict = ChamferSpeedManager.getAlgoSimpleFPSMapDict(calculation_nums)
