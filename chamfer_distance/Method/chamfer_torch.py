@@ -1,7 +1,5 @@
 import torch
 
-from chamfer_distance.Method.data import to_valid_tensor
-
 
 def batched_pairwise_dist(x, y):
     bs = x.size(0)
@@ -29,7 +27,7 @@ def chamfer_torch(a, b):
     dists1, idxs1 = torch.min(P, 2)
     dists2, idxs2 = torch.min(P, 1)
 
-    valid_dists1 = to_valid_tensor(dists1)
-    valid_dists2 = to_valid_tensor(dists2)
+    valid_dists1 = torch.nan_to_num(dists1, 0.0)
+    valid_dists2 = torch.nan_to_num(dists2, 0.0)
 
     return valid_dists1, valid_dists2, idxs1, idxs2
