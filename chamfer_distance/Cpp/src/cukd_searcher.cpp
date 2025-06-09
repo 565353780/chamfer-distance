@@ -1,12 +1,5 @@
 #include "cukd_searcher.h"
-
-// 声明CUDA函数，这些函数将在.cu文件中实现
-extern "C" void *allocateAndBuildKDTree(const torch::Tensor &points,
-                                        void **d_bounds);
-extern "C" std::vector<torch::Tensor> queryKDTree(void *d_input, void *d_bounds,
-                                                  const torch::Tensor &points,
-                                                  int numInput);
-extern "C" void freeKDTreeResources(void *d_input, void *d_bounds);
+#include <ATen/cuda/CUDAContext.h>
 
 // 构造函数
 CUKDSearcher::CUKDSearcher()
@@ -54,4 +47,16 @@ std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
 
   // 调用CUDA函数执行查询
   return queryKDTree(d_input, d_bounds, points, numInput);
+}
+
+// 释放CUDA资源
+void CUKDSearcher::freeKDTreeResources(void *d_input, void *d_bounds) {
+  cudaStream_t stream = at::cuda::getCurrentCUDAStream();
+
+  if (d_input) {
+    cudaFreeAsync(d_input, stream);
+  }
+  if (d_bounds) {
+    cudaFreeAsync(d_bounds, stream);
+  }
 }
