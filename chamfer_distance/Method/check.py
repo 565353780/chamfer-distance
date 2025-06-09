@@ -55,6 +55,7 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
 
         assert torch.allclose(d_xyz21, d_xyz11, atol=1e-5), torch.max(
             torch.abs(d_xyz21 - d_xyz11)
+        )
 
         assert torch.allclose(d_xyz22, d_xyz12, atol=1e-5), torch.max(
             torch.abs(d_xyz22 - d_xyz12)
