@@ -63,10 +63,10 @@ __global__ void ClosestPointKernel(FloatT *d_dists, int *d_indices,
 
 // CUDA函数：分配内存并构建KD树
 void *CUKDSearcher::allocateAndBuildKDTree(const torch::Tensor &points,
-                                           void **d_bounds) {
+                                           void **d_bounds, int batchIdx) {
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  constexpr uint32_t BATCH_SIZE = 128;
+  constexpr uint32_t KERNEL_BATCH_SIZE = 128;
 
   // 获取点云数量
   uint32_t numInput = points.size(0);
@@ -77,7 +77,8 @@ void *CUKDSearcher::allocateAndBuildKDTree(const torch::Tensor &points,
   cudaMallocAsync(d_bounds, sizeof(cukd::box_t<PointT>), stream);
 
   // 复制数据
-  CopyKernel<<<cukd::divRoundUp(numInput, BATCH_SIZE), BATCH_SIZE, 0, stream>>>(
+  CopyKernel<<<cukd::divRoundUp(numInput, KERNEL_BATCH_SIZE), KERNEL_BATCH_SIZE,
+               0, stream>>>(
       static_cast<OrderedPoint<PointT> *>(d_input),
       reinterpret_cast<PointT *>(points.data_ptr<float>()), numInput);
 
@@ -93,33 +94,37 @@ void *CUKDSearcher::allocateAndBuildKDTree(const torch::Tensor &points,
 }
 
 // CUDA函数：查询KD树
-std::vector<torch::Tensor>
-CUKDSearcher::queryKDTree(void *d_input, void *d_bounds,
-                          const torch::Tensor &points, int numInput) {
+std::vector<torch::Tensor> CUKDSearcher::queryKDTree(
+    const std::vector<void *> &d_inputs, const std::vector<void *> &d_bounds,
+    const torch::Tensor &points, const std::vector<int> &numInputs) {
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
   using FloatT = float;
-  constexpr uint32_t BATCH_SIZE = 128;
+  constexpr uint32_t KERNEL_BATCH_SIZE = 128;
 
-  // 获取查询点数量
-  uint32_t numQueries = points.size(0);
+  // 获取批次大小和每批次的查询点数量
+  int batchSize = points.size(0);
+  uint32_t numQueries = points.size(1);
 
   // 创建输出张量
   const torch::TensorOptions distOpts =
       torch::TensorOptions().dtype(points.dtype()).device(points.device());
-  torch::Tensor dists = torch::zeros({numQueries}, distOpts);
+  torch::Tensor dists = torch::zeros({batchSize, numQueries}, distOpts);
 
   const torch::TensorOptions idxOpts =
       torch::TensorOptions().dtype(torch::kInt32).device(points.device());
-  torch::Tensor idxs = torch::zeros({numQueries}, idxOpts);
+  torch::Tensor idxs = torch::zeros({batchSize, numQueries}, idxOpts);
 
-  // 执行查询
-  ClosestPointKernel<<<cukd::divRoundUp(numQueries, BATCH_SIZE), BATCH_SIZE, 0,
-                       stream>>>(
-      dists.data_ptr<FloatT>(), idxs.data_ptr<int>(),
-      reinterpret_cast<PointT *>(points.data_ptr<FloatT>()), numQueries,
-      static_cast<cukd::box_t<PointT> *>(d_bounds),
-      static_cast<OrderedPoint<PointT> *>(d_input), numInput);
+  // 为每个批次执行查询
+  for (int i = 0; i < batchSize; ++i) {
+    // 执行查询
+    ClosestPointKernel<<<cukd::divRoundUp(numQueries, KERNEL_BATCH_SIZE),
+                         KERNEL_BATCH_SIZE, 0, stream>>>(
+        dists.index({i}).data_ptr<FloatT>(), idxs.index({i}).data_ptr<int>(),
+        reinterpret_cast<PointT *>(points.index({i}).data_ptr<FloatT>()),
+        numQueries, static_cast<cukd::box_t<PointT> *>(d_bounds[i]),
+        static_cast<OrderedPoint<PointT> *>(d_inputs[i]), numInputs[i]);
+  }
 
   // 同步确保查询完成
   cudaStreamSynchronize(stream);

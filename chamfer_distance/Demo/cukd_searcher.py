@@ -9,7 +9,8 @@ from chamfer_distance.Module.chamfer_distances import ChamferDistances
 def demo(
     baseline_name: str = "cukd",
     xyz_shapes: list = [300000, 400000],
-    iter_num: int = 100,
+    iter_num: int = 10,
+    device: str = "cuda:0",
 ):
     # 确保CUDA可用
     if not torch.cuda.is_available():
@@ -18,8 +19,8 @@ def demo(
 
     # 创建两个点云
     n_points, m_points = xyz_shapes
-    xyz1 = torch.rand(1, n_points, 3, device="cuda").float()  # 查询点云
-    xyz2 = torch.rand(1, m_points, 3, device="cuda").float()  # 静态点云
+    xyz1 = torch.rand(10, n_points, 3, device=device).float()  # 查询点云
+    xyz2 = torch.rand(10, m_points, 3, device=device).float()  # 静态点云
 
     xyz1.requires_grad_(True)
 
