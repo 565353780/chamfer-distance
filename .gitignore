@@ -12,3 +12,6 @@ dist
 
 # output
 output
+
+# script
+sync.sh
