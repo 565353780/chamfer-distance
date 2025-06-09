@@ -40,14 +40,14 @@ public:
   /**
    * 添加点云数据并构建KD树
    *
-   * @param points 形状为[B, N, 3]的CUDA张量，表示B批次的N个3D点
+   * @param points 形状为[B N 3]的CUDA张量，表示B批次的N个3D点
    */
   void addPoints(const torch::Tensor &points);
 
   /**
    * 查询最近邻点
    *
-   * @param points 形状为[B, M, 3]的CUDA张量，表示B批次的M个查询点
+   * @param points 形状为[B M 3]的CUDA张量，表示B批次的M个查询点
    * @return 包含两个张量的vector：距离和索引
    */
   std::vector<torch::Tensor> query(const torch::Tensor &points);

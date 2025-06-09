@@ -26,14 +26,6 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
     assert loss_21 >= 0, print(loss_21)
     assert loss_22 >= 0, print(loss_22)
 
-    assert torch.allclose(dist11, dist21, atol=1e-5), torch.max(
-        torch.abs(dist11 - dist21)
-    )
-
-    assert torch.allclose(dist12, dist22, atol=1e-5), torch.max(
-        torch.abs(dist12 - dist22)
-    )
-
     not_match_idxs = torch.where(idx21 != idx11)
     if not_match_idxs[0].shape[0] > 0:
         assert torch.allclose(
@@ -45,6 +37,14 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
         assert torch.allclose(
             dist12[not_match_idxs], dist22[not_match_idxs], atol=1e-5
         ), torch.max(torch.abs(dist12[not_match_idxs] - dist22[not_match_idxs]))
+
+    assert torch.allclose(dist11, dist21, atol=1e-5), torch.max(
+        torch.abs(dist11 - dist21)
+    )
+
+    assert torch.allclose(dist12, dist22, atol=1e-5), torch.max(
+        torch.abs(dist12 - dist22)
+    )
 
     if xyz1.requires_grad:
         d_xyz11 = gradient(loss_11, xyz1)
