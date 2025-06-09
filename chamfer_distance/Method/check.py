@@ -16,11 +16,10 @@ def checkChamferResults(func1, func2, xyz1: torch.Tensor, xyz2: torch.Tensor) ->
         print("\t func2 call failed!")
         return False
 
-    # FIXME: check dist1, dist2 grads about xyz1, xyz2 seperately
-    loss_11 = dist11.mean()
-    loss_12 = dist12.mean()
-    loss_21 = dist21.mean()
-    loss_22 = dist22.mean()
+    loss_11 = dist11.sum()
+    loss_12 = dist12.sum()
+    loss_21 = dist21.sum()
+    loss_22 = dist22.sum()
 
     assert loss_11 >= 0, print(loss_11)
     assert loss_12 >= 0, print(loss_12)
