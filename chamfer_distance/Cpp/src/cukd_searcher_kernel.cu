@@ -93,6 +93,14 @@ void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
   TORCH_CHECK(d_nodes != nullptr, "Output pointer d_nodes is null");
   TORCH_CHECK(d_bounds != nullptr, "Output pointer d_bounds is null");
 
+  int tensor_device = input.device().index();
+  int current_device = -1;
+  cudaGetDevice(&current_device);
+
+  if (tensor_device != current_device) {
+    cudaSetDevice(tensor_device);
+  }
+
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
   uint32_t numBatches = input.size(0);
@@ -135,6 +143,14 @@ template <typename FloatT, typename PointT>
 void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
                  const uint32_t &n_points, torch::Tensor &dists,
                  torch::Tensor &idxs) {
+  int tensor_device = query.device().index();
+  int current_device = -1;
+  cudaGetDevice(&current_device);
+
+  if (tensor_device != current_device) {
+    cudaSetDevice(tensor_device);
+  }
+
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
   uint32_t numBatches = query.size(0);
