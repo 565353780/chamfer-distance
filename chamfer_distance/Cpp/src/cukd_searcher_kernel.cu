@@ -99,9 +99,6 @@ void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
   uint32_t numInput = input.size(1);
 
   // We must copy because implicit tree will re-arange input data
-  std::cout << "Allocating d_nodes size: "
-            << numBatches * numInput * sizeof(OrderedPoint<PointT>) << " bytes"
-            << std::endl;
   CUKD_CUDA_CHECK(cudaMallocAsync(
       d_nodes, numBatches * numInput * sizeof(OrderedPoint<PointT>), stream));
 
@@ -114,9 +111,6 @@ void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
       numInput);
   cudaStreamSynchronize(stream);
 
-  std::cout << "Allocating d_bounds size: "
-            << numBatches * sizeof(cukd::box_t<PointT>) << " bytes"
-            << std::endl;
   CUKD_CUDA_CHECK(cudaMallocAsync(
       d_bounds, numBatches * sizeof(cukd::box_t<PointT>), stream));
 
@@ -141,17 +135,11 @@ template <typename FloatT, typename PointT>
 void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
                  const uint32_t &n_points, torch::Tensor &dists,
                  torch::Tensor &idxs) {
-  std::cout << "in queryKDTree\n";
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  std::cout << "get query sizes\n";
   uint32_t numBatches = query.size(0);
   uint32_t numQueries = query.size(1);
 
-  std::cout << numBatches << "\n";
-  std::cout << numQueries << "\n";
-
-  std::cout << "start ClosestPointKernel\n";
   try {
     ClosestPointKernel<<<dim3(cukd::divRoundUp(numBatches, BATCH_SIZE_B),
                               cukd::divRoundUp(numQueries, BATCH_SIZE_M)),
@@ -184,7 +172,6 @@ void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
     throw; // 重新抛出异常，避免静默失败
   }
 
-  std::cout << "start cudaStreamSynchronize\n";
   cudaStreamSynchronize(stream);
 }
 

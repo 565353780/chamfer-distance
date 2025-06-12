@@ -53,11 +53,9 @@ std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
 
   torch::Tensor dists = torch::zeros({numBatches, numQueries},
                                      torch::dtype(dtype).device(device));
-  std::cout << "test create distOpts\n";
 
   torch::Tensor idxs = torch::zeros({numBatches, numQueries},
                                     torch::dtype(torch::kInt32).device(device));
-  std::cout << "test create idxOpts\n";
 
   queryKDTree<float, float3>(d_nodes, d_bounds, points, n_points, dists, idxs);
 
