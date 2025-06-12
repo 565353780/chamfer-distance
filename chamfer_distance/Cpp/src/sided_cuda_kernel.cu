@@ -30,7 +30,6 @@ const unsigned int GRID_DIM_X_VAL = 256;
 __global__ void NmDistanceKernel(const int b, const int n, const float *xyz,
                                  const int m, const float *xyz2, float *result,
                                  int *result_i) {
-  const int batch = NM_KERNEL_TILE_SIZE;
   __shared__ float buf[NM_KERNEL_TILE_SIZE * 3];
   for (int i = blockIdx.x; i < b; i += gridDim.x) {
     for (int k2 = 0; k2 < m; k2 += NM_KERNEL_TILE_SIZE) {

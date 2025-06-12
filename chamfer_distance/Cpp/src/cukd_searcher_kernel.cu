@@ -1,16 +1,24 @@
 #include "cukd_searcher.h"
+
 #include <ATen/cuda/CUDAContext.h>
+#include <omp.h>
+
+#define CUKD_BUILDER_INPLACE
 #include <cukd/builder.h>
 #include <cukd/fcp.h>
 
-// 定义OrderedPoint_traits
-template <typename T>
-struct OrderedPoint_traits : public cukd::default_data_traits<T> {
-  using data_t = OrderedPoint<T>;
-  using point_traits = cukd::point_traits<T>;
+#include <tiny-cuda-nn/common_host.h>
+#include <tiny-cuda-nn/gpu_memory.h>
+#include <tiny-cuda-nn/multi_stream.h>
+
+template <typename PointT>
+struct OrderedPoint_traits : public cukd::default_data_traits<PointT> {
+  using data_t = OrderedPoint<PointT>;
+  using point_traits = cukd::point_traits<PointT>;
   using scalar_t = typename point_traits::scalar_t;
 
-  static inline __device__ __host__ const T &get_point(const data_t &data) {
+  static inline __device__ __host__ const PointT &
+  get_point(const data_t &data) {
     return data.position;
   }
 
@@ -24,162 +32,121 @@ struct OrderedPoint_traits : public cukd::default_data_traits<T> {
 };
 
 // 复制内核
-template <typename T>
-__global__ void CopyKernel(OrderedPoint<T> *points, T *positions,
-                           int n_points) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= n_points)
+template <typename PointT>
+__global__ void CopyKernel(OrderedPoint<PointT> *points, PointT *positions,
+                           int n_batches, int n_points) {
+  int bid = threadIdx.x + blockIdx.x * blockDim.x;
+  int nid = threadIdx.y + blockIdx.y * blockDim.y;
+
+  if ((bid >= n_batches) || (nid >= n_points))
     return;
-  points[tid].position = positions[tid];
-  points[tid].idx = tid;
+
+  // Row major
+  int pid = bid * n_points + nid;
+  points[pid].position = positions[pid];
+  // Batch local index
+  points[pid].idx = nid;
 }
 
 // 最近点查询内核
-template <typename FloatT, typename T>
-__global__ void ClosestPointKernel(FloatT *d_dists, int *d_indices,
-                                   T *d_queries, int numQueries,
-                                   const cukd::box_t<T> *d_bounds,
-                                   OrderedPoint<T> *d_nodes, int numNodes) {
-  int tid = threadIdx.x + blockIdx.x * blockDim.x;
-  if (tid >= numQueries)
+template <typename FloatT, typename PointT>
+__global__ void
+ClosestPointKernel(FloatT *d_dists, int *d_indices, PointT *d_queries,
+                   int n_batches, int n_queries,
+                   const cukd::box_t<PointT> *d_bounds,
+                   OrderedPoint<PointT> *d_nodes, int n_points) {
+  int bid = threadIdx.x + blockIdx.x * blockDim.x;
+  int mid = threadIdx.y + blockIdx.y * blockDim.y;
+
+  if ((bid >= n_batches) || (mid >= n_queries))
     return;
 
-  T queryPos = d_queries[tid];
+  // Row major
+  int qid = bid * n_queries + mid;
+  PointT queryPos = d_queries[qid];
   cukd::FcpSearchParams params;
+  // Local closest index
+  int closestID =
+      cukd::cct::fcp<OrderedPoint<PointT>, OrderedPoint_traits<PointT>>(
+          queryPos, *(d_bounds + bid), d_nodes + bid * n_points, n_points,
+          params);
+  int pid = bid * n_points + closestID;
+  int idx = d_nodes[pid].idx;
+  PointT inputPos = d_nodes[pid].position;
 
-  int closestID = cukd::cct::fcp<OrderedPoint<T>, OrderedPoint_traits<T>>(
-      queryPos, *d_bounds, d_nodes, numNodes, params);
+  float x_diff = queryPos.x - inputPos.x;
+  float y_diff = queryPos.y - inputPos.y;
+  float z_diff = queryPos.z - inputPos.z;
 
-  // 确保找到有效的最近邻
-  if (closestID >= 0 && closestID < numNodes) {
-    int idx = d_nodes[closestID].idx;
-    T inputPos = d_nodes[closestID].position;
-
-    float x_diff = queryPos.x - inputPos.x;
-    float y_diff = queryPos.y - inputPos.y;
-    float z_diff = queryPos.z - inputPos.z;
-    d_dists[tid] = x_diff * x_diff + y_diff * y_diff + z_diff * z_diff;
-    d_indices[tid] = idx;
-  } else {
-    // 如果没有找到有效的最近邻，设置一个无效值
-    d_dists[tid] = INFINITY;
-    d_indices[tid] = -1;
-  }
+  d_dists[qid] = x_diff * x_diff + y_diff * y_diff + z_diff * z_diff;
+  d_indices[qid] = idx;
 }
 
 // CUDA函数：分配内存并构建KD树
-void *CUKDSearcher::allocateAndBuildKDTree(const torch::Tensor &points,
-                                           void **d_bounds, int batchIdx) {
+template <typename FloatT, typename PointT, uint32_t THREAD_POOL,
+          uint32_t BATCH_SIZE_B, uint32_t BATCH_SIZE_N, uint32_t BATCH_SIZE_M>
+void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
-  constexpr uint32_t KERNEL_BATCH_SIZE = 256; // 增加批处理大小以提高性能
 
-  // 获取点云数量
-  uint32_t numInput = points.size(0);
-  if (numInput == 0) {
-    return nullptr;
-  }
+  uint32_t numBatches = input.size(0);
+  uint32_t numInput = input.size(1);
 
-  // 分配内存
-  void *d_input = nullptr;
-  cudaError_t err;
+  // We must copy because implicit tree will re-arange input data
+  CUKD_CUDA_CHECK(cudaMallocAsync(
+      d_nodes, numBatches * numInput * sizeof(OrderedPoint<PointT>), stream));
 
-  err = cudaMallocAsync(&d_input, numInput * sizeof(OrderedPoint<PointT>),
-                        stream);
-  if (err != cudaSuccess) {
-    throw std::runtime_error("Failed to allocate memory for input points");
-  }
-
-  err = cudaMallocAsync(d_bounds, sizeof(cukd::box_t<PointT>), stream);
-  if (err != cudaSuccess) {
-    cudaFreeAsync(d_input, stream);
-    throw std::runtime_error("Failed to allocate memory for bounds");
-  }
-
-  // 复制数据
-  dim3 block(KERNEL_BATCH_SIZE);
-  dim3 grid(cukd::divRoundUp(numInput, KERNEL_BATCH_SIZE));
-
-  CopyKernel<<<grid, block, 0, stream>>>(
-      static_cast<OrderedPoint<PointT> *>(d_input),
-      reinterpret_cast<PointT *>(points.data_ptr<float>()), numInput);
-
-  // 检查kernel执行错误
-  err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    cudaFreeAsync(d_input, stream);
-    cudaFreeAsync(*d_bounds, stream);
-    throw std::runtime_error("Failed to execute copy kernel");
-  }
-
-  // 构建KD树
-  try {
-    cukd::buildTree<OrderedPoint<PointT>, OrderedPoint_traits<PointT>>(
-        static_cast<OrderedPoint<PointT> *>(d_input), numInput,
-        static_cast<cukd::box_t<PointT> *>(*d_bounds), stream);
-  } catch (const std::exception &e) {
-    cudaFreeAsync(d_input, stream);
-    cudaFreeAsync(*d_bounds, stream);
-    throw;
-  }
-
-  // 同步确保构建完成
+  // **IMPORTANT** We cannot loop, as data is in device memory
+  CopyKernel<<<dim3(cukd::divRoundUp(numBatches, BATCH_SIZE_B),
+                    cukd::divRoundUp(numInput, BATCH_SIZE_N)),
+               dim3(BATCH_SIZE_B, BATCH_SIZE_N), 0, stream>>>(
+      static_cast<OrderedPoint<PointT> *>(d_nodes),
+      reinterpret_cast<PointT *>(input.data_ptr<FloatT>()), numBatches,
+      numInput);
   cudaStreamSynchronize(stream);
 
-  return d_input;
+  CUKD_CUDA_CHECK(cudaMallocAsync(
+      d_bounds, numBatches * sizeof(cukd::box_t<PointT>), stream));
+
+  // Build tree in parallel
+  tcnn::SyncedMultiStream syncedStreams(stream, THREAD_POOL);
+  omp_set_num_threads(THREAD_POOL);
+#pragma omp parallel for schedule(dynamic)
+  for (int bid = 0; bid < numBatches; bid++) {
+    int tid = omp_get_thread_num();
+    cukd::buildTree<OrderedPoint<PointT>, OrderedPoint_traits<PointT>>(
+        static_cast<OrderedPoint<PointT> *>(*d_nodes) + bid * numInput,
+        numInput, static_cast<cukd::box_t<PointT> *>(*d_bounds) + bid,
+        syncedStreams.get(tid));
+    cudaStreamSynchronize(syncedStreams.get(tid));
+  }
 }
 
 // CUDA函数：查询KD树
-std::vector<torch::Tensor> CUKDSearcher::queryKDTree(
-    const std::vector<void *> &d_inputs, const std::vector<void *> &d_bounds,
-    const torch::Tensor &points, const std::vector<int> &numInputs) {
+template <typename FloatT, typename PointT, uint32_t THREAD_POOL,
+          uint32_t BATCH_SIZE_B, uint32_t BATCH_SIZE_N, uint32_t BATCH_SIZE_M>
+std::vector<torch::Tensor> queryKDTree(void *d_nodes, void *d_bounds,
+                                       const torch::Tensor &query,
+                                       const uint32_t &n_points) {
   cudaStream_t stream = at::cuda::getCurrentCUDAStream();
 
-  using FloatT = float;
-  constexpr uint32_t KERNEL_BATCH_SIZE = 256; // 增加批处理大小以提高性能
+  uint32_t numBatches = query.size(0);
+  uint32_t numQueries = query.size(0);
 
-  // 获取批次大小和每批次的查询点数量
-  int batchSize = points.size(0);
-  uint32_t numQueries = points.size(1);
-
-  if (numQueries == 0) {
-    return {
-        torch::empty({batchSize, 0}, points.options()),
-        torch::empty({batchSize, 0}, points.options().dtype(torch::kInt32))};
-  }
-
-  // 创建输出张量
   const torch::TensorOptions distOpts =
-      torch::TensorOptions().dtype(points.dtype()).device(points.device());
-  torch::Tensor dists = torch::zeros({batchSize, numQueries}, distOpts);
+      torch::TensorOptions().dtype(query.dtype()).device(query.device());
+  torch::Tensor dists = torch::zeros({numBatches, numQueries}, distOpts);
 
   const torch::TensorOptions idxOpts =
-      torch::TensorOptions().dtype(torch::kInt32).device(points.device());
-  torch::Tensor idxs = torch::zeros({batchSize, numQueries}, idxOpts);
+      torch::TensorOptions().dtype(torch::kInt32).device(query.device());
+  torch::Tensor idxs = torch::zeros({numBatches, numQueries}, idxOpts);
 
-  // 为每个批次执行查询
-  dim3 block(KERNEL_BATCH_SIZE);
-  dim3 grid(cukd::divRoundUp(numQueries, KERNEL_BATCH_SIZE));
-
-  for (int i = 0; i < batchSize; ++i) {
-    if (!d_inputs[i] || !d_bounds[i] || numInputs[i] == 0) {
-      continue;
-    }
-
-    // 执行查询
-    ClosestPointKernel<<<grid, block, 0, stream>>>(
-        dists.index({i}).data_ptr<FloatT>(), idxs.index({i}).data_ptr<int>(),
-        reinterpret_cast<PointT *>(points.index({i}).data_ptr<FloatT>()),
-        numQueries, static_cast<cukd::box_t<PointT> *>(d_bounds[i]),
-        static_cast<OrderedPoint<PointT> *>(d_inputs[i]), numInputs[i]);
-
-    // 检查kernel执行错误
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess) {
-      throw std::runtime_error("Failed to execute query kernel");
-    }
-  }
-
-  // 同步确保查询完成
+  ClosestPointKernel<<<dim3(cukd::divRoundUp(numBatches, BATCH_SIZE_B),
+                            cukd::divRoundUp(numQueries, BATCH_SIZE_M)),
+                       dim3(BATCH_SIZE_B, BATCH_SIZE_M), 0, stream>>>(
+      dists.data_ptr<FloatT>(), idxs.data_ptr<int>(),
+      reinterpret_cast<PointT *>(query.data_ptr<FloatT>()), numBatches,
+      numQueries, static_cast<cukd::box_t<PointT> *>(d_bounds),
+      static_cast<OrderedPoint<PointT> *>(d_nodes), n_points);
   cudaStreamSynchronize(stream);
 
   return {dists, idxs};

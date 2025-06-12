@@ -12,7 +12,8 @@ rm -rf ../chamfer-distance/build
 rm -rf ../chamfer-distance/*.egg-info
 rm ../chamfer-distance/*.so
 
-bear -- python setup.py build_ext --inplace
+# bear -- python setup.py build_ext --inplace
+python setup.py build_ext --inplace
 mv compile_commands.json build
 
 pip install .
