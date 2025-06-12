@@ -26,6 +26,11 @@ chamfer_include_dirs = [
     chamfer_lib_path + "tiny-cuda-nn/dependencies/fmt/include",
 ]
 
+chamfer_sources += [
+    chamfer_lib_path + "tiny-cuda-nn/dependencies/fmt/src/format.cc",
+    chamfer_lib_path + "tiny-cuda-nn/dependencies/fmt/src/os.cc",
+]
+
 chamfer_extra_compile_args = [
     "-O3",
     f"-std=c++{cpp_standard}",
@@ -50,11 +55,16 @@ if len(compute_capabilities) > 0:
         "-U__CUDA_NO_HALF2_OPERATORS__",
         "-Xcompiler=-Wno-float-conversion",
         "-Xcompiler=-fno-strict-aliasing",
+        "-Xcompiler=-fopenmp",
     ]
 
     nvcc_flags = base_nvcc_flags + [
         f"-gencode=arch=compute_{compute_capability},code={code}_{compute_capability}"
         for code in ["compute", "sm"]
+    ]
+
+    chamfer_sources += [
+        chamfer_lib_path + "tiny-cuda-nn/src/common_host.cu",
     ]
 
     chamfer_sources += glob.glob(chamfer_src_path + "*.cu")

@@ -17,17 +17,13 @@ template <typename PointT> struct OrderedPoint {
   int idx;
 };
 
-template <typename FloatT = float, typename PointT = float3,
-          uint32_t THREAD_POOL = 16, uint32_t BATCH_SIZE_B = 32,
-          uint32_t BATCH_SIZE_N = 16, uint32_t BATCH_SIZE_M = 16>
+template <typename FloatT, typename PointT>
 void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds);
 
-template <typename FloatT = float, typename PointT = float3,
-          uint32_t THREAD_POOL = 16, uint32_t BATCH_SIZE_B = 32,
-          uint32_t BATCH_SIZE_N = 16, uint32_t BATCH_SIZE_M = 16>
-std::vector<torch::Tensor> queryKDTree(void *d_nodes, void *d_bounds,
-                                       const torch::Tensor &query,
-                                       const uint32_t &n_points);
+template <typename FloatT, typename PointT>
+void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
+                 const uint32_t &n_points, torch::Tensor &dists,
+                 torch::Tensor &idxs);
 
 class CUKDSearcher {
 public:
@@ -46,10 +42,10 @@ private:
   void freeKDTreeResources(void *d_input, void *d_bounds);
 
 private:
-  bool initialized;
+  bool initialized = false;
 
-  int batch_size;
-  u_int32_t n_points;
-  void *d_nodes;
-  void *d_bounds;
+  int batch_size = 0;
+  u_int32_t n_points = 0;
+  void *d_nodes = nullptr;
+  void *d_bounds = nullptr;
 };

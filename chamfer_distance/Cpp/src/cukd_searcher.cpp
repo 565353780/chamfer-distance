@@ -1,7 +1,7 @@
 #include "cukd_searcher.h"
 #include <ATen/cuda/CUDAContext.h>
 
-CUKDSearcher::CUKDSearcher() : initialized(false) {}
+CUKDSearcher::CUKDSearcher() {}
 
 CUKDSearcher::~CUKDSearcher() { releaseResources(); }
 
@@ -17,9 +17,10 @@ void CUKDSearcher::releaseResources() {
 
   batch_size = 0;
   n_points = 0;
+
+  initialized = false;
 }
 
-// 添加点云数据并构建KD树
 void CUKDSearcher::addPoints(const torch::Tensor &points) {
   TORCH_CHECK(points.is_cuda(), "Input points must be CUDA tensor");
   TORCH_CHECK(points.dim() == 3, "Input points must be [B, N, D]");
@@ -27,7 +28,7 @@ void CUKDSearcher::addPoints(const torch::Tensor &points) {
 
   releaseResources();
 
-  buildKDTree(points, &d_nodes, &d_bounds);
+  buildKDTree<float, float3>(points, &d_nodes, &d_bounds);
 
   batch_size = points.size(0);
   n_points = points.size(1);
@@ -35,7 +36,6 @@ void CUKDSearcher::addPoints(const torch::Tensor &points) {
   initialized = true;
 }
 
-// 查询最近邻点
 std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
   TORCH_CHECK(initialized, "No points have been added to the index yet");
   TORCH_CHECK(points.is_cuda(), "Input points must be CUDA tensor");
@@ -45,6 +45,21 @@ std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
   TORCH_CHECK(points.size(2) == 3,
               "Query points dimension must match index dimension");
 
-  // 调用CUDA函数执行查询
-  return queryKDTree(d_nodes, d_bounds, points, n_points);
+  int numBatches = points.size(0);
+  int numQueries = points.size(1);
+
+  auto device = points.device();
+  auto dtype = points.dtype();
+
+  torch::Tensor dists = torch::zeros({numBatches, numQueries},
+                                     torch::dtype(dtype).device(device));
+  std::cout << "test create distOpts\n";
+
+  torch::Tensor idxs = torch::zeros({numBatches, numQueries},
+                                    torch::dtype(torch::kInt32).device(device));
+  std::cout << "test create idxOpts\n";
+
+  queryKDTree<float, float3>(d_nodes, d_bounds, points, n_points, dists, idxs);
+
+  return {dists, idxs};
 }
