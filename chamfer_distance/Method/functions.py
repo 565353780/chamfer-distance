@@ -40,8 +40,16 @@ class ChamferFunction(BaseFunction):
 
 class SearcherFunction(BaseFunction):
     @staticmethod
-    def forward(ctx, xyz1, xyz2, searcher, sided_forward_func_name: str = "cuda"):
-        dist1, idx1 = searcher.query(xyz1)
+    def forward(
+        ctx,
+        xyz1,
+        xyz2,
+        searcher,
+        sided_forward_func_name: str = "cuda",
+        BATCH_SIZE_B: int = 32,
+        BATCH_SIZE_M: int = 16,
+    ):
+        dist1, idx1 = searcher.query(xyz1, BATCH_SIZE_B, BATCH_SIZE_M)
         dist2, idx2 = sided_forward_func(sided_forward_func_name, xyz2, xyz1)
 
         ctx.save_for_backward(xyz1, xyz2, idx1, idx2)

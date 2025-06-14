@@ -21,14 +21,18 @@ void CUKDSearcher::releaseResources() {
   initialized = false;
 }
 
-void CUKDSearcher::addPoints(const torch::Tensor &points) {
+void CUKDSearcher::addPoints(const torch::Tensor &points,
+                             const uint32_t &THREAD_POOL,
+                             const uint32_t &BATCH_SIZE_B,
+                             const uint32_t &BATCH_SIZE_N) {
   TORCH_CHECK(points.is_cuda(), "Input points must be CUDA tensor");
   TORCH_CHECK(points.dim() == 3, "Input points must be [B, N, D]");
   TORCH_CHECK(points.size(2) == 3, "Input points must have 3 dimensions");
 
   releaseResources();
 
-  buildKDTree<float, float3>(points, &d_nodes, &d_bounds);
+  buildKDTree<float, float3>(points, &d_nodes, &d_bounds, THREAD_POOL,
+                             BATCH_SIZE_B, BATCH_SIZE_N);
 
   batch_size = points.size(0);
   n_points = points.size(1);
@@ -36,7 +40,9 @@ void CUKDSearcher::addPoints(const torch::Tensor &points) {
   initialized = true;
 }
 
-std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
+std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points,
+                                               const uint32_t &BATCH_SIZE_B,
+                                               const uint32_t &BATCH_SIZE_N) {
   TORCH_CHECK(initialized, "No points have been added to the index yet");
   TORCH_CHECK(points.is_cuda(), "Input points must be CUDA tensor");
   TORCH_CHECK(points.dim() == 3, "Input points must be [B, M, D]");
@@ -57,7 +63,8 @@ std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points) {
   torch::Tensor idxs = torch::zeros({numBatches, numQueries},
                                     torch::dtype(torch::kInt32).device(device));
 
-  queryKDTree<float, float3>(d_nodes, d_bounds, points, n_points, dists, idxs);
+  queryKDTree<float, float3>(d_nodes, d_bounds, points, n_points, dists, idxs,
+                             BATCH_SIZE_B, BATCH_SIZE_N);
 
   return {dists, idxs};
 }

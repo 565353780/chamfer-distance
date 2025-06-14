@@ -11,11 +11,6 @@
 #include <tiny-cuda-nn/gpu_memory.h>
 #include <tiny-cuda-nn/multi_stream.h>
 
-uint32_t THREAD_POOL = 16;
-uint32_t BATCH_SIZE_B = 32;
-uint32_t BATCH_SIZE_N = 16;
-uint32_t BATCH_SIZE_M = 16;
-
 template <typename PointT>
 struct OrderedPoint_traits : public cukd::default_data_traits<PointT> {
   using data_t = OrderedPoint<PointT>;
@@ -86,7 +81,9 @@ ClosestPointKernel(FloatT *d_dists, int *d_indices, PointT *d_queries,
 }
 
 template <typename FloatT, typename PointT>
-void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
+void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds,
+                 const uint32_t &THREAD_POOL, const uint32_t &BATCH_SIZE_B,
+                 const uint32_t &BATCH_SIZE_N) {
   TORCH_CHECK(input.is_contiguous(), "Input tensor must be contiguous");
   TORCH_CHECK(input.device().is_cuda(), "Input tensor must be on CUDA");
 
@@ -142,7 +139,8 @@ void buildKDTree(const torch::Tensor &input, void **d_nodes, void **d_bounds) {
 template <typename FloatT, typename PointT>
 void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
                  const uint32_t &n_points, torch::Tensor &dists,
-                 torch::Tensor &idxs) {
+                 torch::Tensor &idxs, const uint32_t &BATCH_SIZE_B,
+                 const uint32_t &BATCH_SIZE_M) {
   int tensor_device = query.device().index();
   int current_device = -1;
   cudaGetDevice(&current_device);
@@ -169,7 +167,8 @@ void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
     cudaError_t kernelLaunchError = cudaGetLastError();
     if (kernelLaunchError != cudaSuccess) {
       throw std::runtime_error(
-          fmt::format("ClosestPointKernel launch failed: {} (error code: {})",
+          fmt::format("ClosestPointKernel launch failed: {} "
+                      "(error code: {})",
                       cudaGetErrorString(kernelLaunchError),
                       static_cast<int>(kernelLaunchError)));
     }
@@ -177,10 +176,11 @@ void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
     // 同步流以确保内核完成
     cudaError_t streamSyncError = cudaStreamSynchronize(stream);
     if (streamSyncError != cudaSuccess) {
-      throw std::runtime_error(fmt::format(
-          "ClosestPointKernel execution failed: {} (error code: {})",
-          cudaGetErrorString(streamSyncError),
-          static_cast<int>(streamSyncError)));
+      throw std::runtime_error(
+          fmt::format("ClosestPointKernel execution failed: "
+                      "{} (error code: {})",
+                      cudaGetErrorString(streamSyncError),
+                      static_cast<int>(streamSyncError)));
     }
   } catch (const std::exception &e) {
     // 捕获异常并输出到标准错误流
@@ -192,10 +192,12 @@ void queryKDTree(void *d_nodes, void *d_bounds, const torch::Tensor &query,
 }
 
 template void buildKDTree<float, float3>(const torch::Tensor &input,
-                                         void **d_nodes, void **d_bounds);
+                                         void **d_nodes, void **d_bounds,
+                                         const uint32_t &THREAD_POOL,
+                                         const uint32_t &BATCH_SIZE_B,
+                                         const uint32_t &BATCH_SIZE_N);
 
-template void queryKDTree<float, float3>(void *d_nodes, void *d_bounds,
-                                         const torch::Tensor &query,
-                                         const uint32_t &n_points,
-                                         torch::Tensor &dists,
-                                         torch::Tensor &idxs);
+template void queryKDTree<float, float3>(
+    void *d_nodes, void *d_bounds, const torch::Tensor &query,
+    const uint32_t &n_points, torch::Tensor &dists, torch::Tensor &idxs,
+    const uint32_t &BATCH_SIZE_B, const uint32_t &BATCH_SIZE_N);
