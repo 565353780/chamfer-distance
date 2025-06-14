@@ -26,9 +26,9 @@ class CUKDSearcher(object):
     def addPoints(
         self,
         points: torch.Tensor,
-        THREAD_POOL: int = 64,
-        BATCH_SIZE_B: int = 16,
-        BATCH_SIZE_N: int = 32,
+        THREAD_POOL: int = 16,
+        BATCH_SIZE_B: int = 32,
+        BATCH_SIZE_N: int = 16,
     ) -> bool:
         assert points.is_cuda, "输入点云必须是CUDA张量"
         if points.dim() == 2:
@@ -44,8 +44,8 @@ class CUKDSearcher(object):
         self,
         points: torch.Tensor,
         sided_forward_func_name: str = "cuda",
-        BATCH_SIZE_B: int = 2,
-        BATCH_SIZE_M: int = 32,
+        BATCH_SIZE_B: int = 32,
+        BATCH_SIZE_M: int = 16,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         assert self.gt_points is not None, "请先调用addPoints添加点云数据"
         assert points.is_cuda, "输入点云必须是CUDA张量"
