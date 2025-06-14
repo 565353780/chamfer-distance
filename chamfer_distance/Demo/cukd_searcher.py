@@ -26,8 +26,8 @@ def testAlgoSpeed(
 
 
 def demo(
-    baseline_name: str = "cukd",
-    xyz_shapes: list = [1600, 1000],
+    xyz1_shapes: list = [4000, 1600, 3],
+    xyz2_shapes: list = [4000, 1000, 3],
     iter_num: int = 10,
     device: str = "cuda:0",
 ):
@@ -37,9 +37,8 @@ def demo(
         return
 
     # 创建两个点云
-    n_points, m_points = xyz_shapes
-    xyz1 = torch.rand(10000, n_points, 3, device=device).float()  # 查询点云
-    xyz2 = torch.rand(10000, m_points, 3, device=device).float()  # 静态点云
+    xyz1 = torch.rand(*xyz1_shapes, device=device).float()  # 查询点云
+    xyz2 = torch.rand(*xyz2_shapes, device=device).float()  # 静态点云
 
     xyz1.requires_grad_(True)
 
