@@ -3,4 +3,4 @@ pip install torch torchvision torchaudio \
 
 pip install -U icecream jax
 
-pip install -e .
+pip install .
