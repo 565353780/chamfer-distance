@@ -7,6 +7,7 @@
 PYBIND11_MODULE(chamfer_cpp, m) {
   m.doc() = "pybind11 chamfer cpp plugin";
 
+#ifdef USE_CUDA
   m.def("sided_forward_cuda", &sided_forward_cuda,
         "sided_cuda.sided_forward_cuda");
 
@@ -18,4 +19,5 @@ PYBIND11_MODULE(chamfer_cpp, m) {
       .def(pybind11::init<>())
       .def("addPoints", &CUKDSearcher::addPoints, "添加点云数据并构建KD树")
       .def("query", &CUKDSearcher::query, "查询最近邻点");
+#endif
 }

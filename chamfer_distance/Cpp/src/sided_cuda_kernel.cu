@@ -1,8 +1,10 @@
 #include <algorithm>
-#include <cuda.h>
-#include <cuda_runtime.h>
 #include <stdio.h>
 #include <torch/extension.h>
+
+#ifdef USE_CUDA
+#include <cuda.h>
+#include <cuda_runtime.h>
 
 // NM_KERNEL_TILE_SIZE controls the tile size used in shared memory for the
 // NmDistanceKernel. This value impacts performance and can be tuned based on
@@ -206,3 +208,4 @@ void sided_forward_cuda(const torch::Tensor &xyz1, const torch::Tensor &xyz2,
     // THError("aborting");
   }
 }
+#endif

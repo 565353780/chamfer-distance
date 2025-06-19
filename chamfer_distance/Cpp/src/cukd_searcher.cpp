@@ -1,4 +1,6 @@
 #include "cukd_searcher.h"
+
+#ifdef USE_CUDA
 #include <ATen/cuda/CUDAContext.h>
 
 CUKDSearcher::CUKDSearcher() {}
@@ -68,3 +70,4 @@ std::vector<torch::Tensor> CUKDSearcher::query(const torch::Tensor &points,
 
   return {dists, idxs};
 }
+#endif

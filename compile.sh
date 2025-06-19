@@ -6,6 +6,11 @@ fi
 
 export MAX_JOBS=${PROCESSOR_NUM}
 
+export CC=$(which gcc)
+export CXX=$(which g++)
+echo "Using CC: $CC"
+echo "Using CXX: $CXX"
+
 pip uninstall chamfer_distance -y
 
 rm -rf ../chamfer-distance/build

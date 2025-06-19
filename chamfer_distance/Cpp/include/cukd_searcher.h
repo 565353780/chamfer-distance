@@ -1,10 +1,12 @@
 #pragma once
 
-#include <cuda_runtime.h>
 #include <memory>
 #include <torch/extension.h>
 #include <unordered_map>
 #include <vector>
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
 
 // 前向声明
 namespace cukd {
@@ -56,3 +58,4 @@ private:
   void *d_nodes = nullptr;
   void *d_bounds = nullptr;
 };
+#endif

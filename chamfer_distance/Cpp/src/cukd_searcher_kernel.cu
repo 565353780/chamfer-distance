@@ -1,5 +1,6 @@
 #include "cukd_searcher.h"
 
+#ifdef USE_CUDA
 #include <ATen/cuda/CUDAContext.h>
 #include <omp.h>
 
@@ -201,3 +202,4 @@ template void queryKDTree<float, float3>(
     void *d_nodes, void *d_bounds, const torch::Tensor &query,
     const uint32_t &n_points, torch::Tensor &dists, torch::Tensor &idxs,
     const uint32_t &BATCH_SIZE_B, const uint32_t &BATCH_SIZE_N);
+#endif
